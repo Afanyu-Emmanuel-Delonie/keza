@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../home_screen/presentation/HomeScreen.dart';
+import '../../home_screen/presentation/ExploreScreen.dart';
+import '../../home_screen/presentation/TripsScreen.dart';
 import '../../../core/theme/app_colors.dart';
 
 class NavigationPage extends StatefulWidget {
@@ -15,7 +17,8 @@ class _NavigationPageState extends State<NavigationPage> {
   // List of features/pages to display
   final List<Widget> _pages = [
     const HomeScreen(),
-    const Center(child: Text('Tourism')),
+    const ExploreScreen(),
+    const TripsScreen(),
     const Center(child: Text('AI Assistant')),
     const Center(child: Text('Profile')),
   ];
@@ -47,7 +50,12 @@ class _NavigationPageState extends State<NavigationPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.explore_outlined),
             activeIcon: Icon(Icons.explore),
-            label: 'Tourism',
+            label: 'Explore',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.card_travel_outlined),
+            activeIcon: Icon(Icons.card_travel),
+            label: 'Trips',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assistant_outlined),

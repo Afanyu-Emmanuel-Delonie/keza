@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/widgets/animated_card_item.dart';
 import 'DestinationDetails.dart';
+import 'ProvincePlacesScreen.dart';
 
 class ExploreScreen extends StatelessWidget {
   const ExploreScreen({super.key});
@@ -38,11 +38,11 @@ class ExploreScreen extends StatelessWidget {
               SizedBox(height: 20.h),
               const _AICallToAction(),
               SizedBox(height: 24.h),
-              _SectionHeader(title: 'Browse by Province'),
+              const _SectionHeader(title: 'Browse by Province'),
               SizedBox(height: 12.h),
               const _ProvincesGrid(),
               SizedBox(height: 24.h),
-              _SectionHeader(title: 'Top Destinations'),
+              const _SectionHeader(title: 'Top Destinations'),
               SizedBox(height: 12.h),
               const _TopDestinationsList(),
               SizedBox(height: 20.h),
@@ -166,12 +166,22 @@ class _ProvincesGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final province = AppConstants.provinces[index];
         return GestureDetector(
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProvincePlacesScreen(
+                  provinceName: province['name'] as String,
+                  destinations: province['destinations'] as List<Map<String, dynamic>>,
+                ),
+              ),
+            );
+          },
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16.r),
               image: DecorationImage(
-                image: CachedNetworkImageProvider(province['image']!),
+                image: CachedNetworkImageProvider(province['image'] as String),
                 fit: BoxFit.cover,
               ),
             ),
@@ -191,7 +201,7 @@ class _ProvincesGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    province['name']!,
+                    province['name'] as String,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.sp,
@@ -199,7 +209,7 @@ class _ProvincesGrid extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    province['places']!,
+                    province['places_count'] as String,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 11.sp,
@@ -228,16 +238,18 @@ class _TopDestinationsList extends StatelessWidget {
         final destination = AppConstants.topDestinations[index];
         return GestureDetector(
           onTap: () {
-             Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DestinationDetails(
-                    title: destination['name']!,
-                    location: destination['location']!,
-                    images: [destination['image']!],
-                  ),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DestinationDetails(
+                  title: destination['name']!,
+                  location: destination['location']!,
+                  images: [destination['image']!],
+                  price: destination['price'],
+                  rating: destination['rating'],
                 ),
-              );
+              ),
+            );
           },
           child: Container(
             margin: EdgeInsets.only(bottom: 12.h),
