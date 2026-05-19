@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme/app_colors.dart';
 
 class AiCallToAction extends StatelessWidget {
@@ -26,27 +27,17 @@ class AiCallToAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.r),
         child: Stack(
           children: [
+            // ── SVG watermark logo ───────────────────────
             Positioned(
-              top: -30.h,
-              right: -30.w,
-              child: Container(
-                width: 130.w,
-                height: 130.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.06),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -20.h,
-              right: 60.w,
-              child: Container(
-                width: 80.w,
-                height: 80.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+              right: -10.w,
+              bottom: -10.h,
+              child: Opacity(
+                opacity: 0.08,
+                child: SvgPicture.asset(
+                  'assets/general/main-logo.svg',
+                  width: 180.w,
+                  height: 180.w,
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),

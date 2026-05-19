@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 
 class CategoriesSection extends StatefulWidget {
-  final List<Map<String, String>> categories;
-  final ValueChanged<Map<String, String>>? onCategorySelected;
+  final List<Map<String, dynamic>> categories;
+  final ValueChanged<Map<String, dynamic>>? onCategorySelected;
 
   const CategoriesSection({
     super.key,
@@ -40,7 +39,7 @@ class _CategoriesSectionState extends State<CategoriesSection> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: EdgeInsets.only(right: 10.w),
-              padding: EdgeInsets.only(right: 12.w),
+              padding: EdgeInsets.symmetric(horizontal: 12.w),
               decoration: BoxDecoration(
                 color: isActive ? AppColors.primary : Colors.white,
                 borderRadius: BorderRadius.circular(30.r),
@@ -57,22 +56,12 @@ class _CategoriesSectionState extends State<CategoriesSection> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(30.r),
-                    child: CachedNetworkImage(
-                      imageUrl: category['image'] ?? '',
-                      width: 36.h,
-                      height: 36.h,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Container(
-                        width: 36.h,
-                        height: 36.h,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image, size: 14, color: Colors.grey),
-                      ),
-                    ),
+                  Icon(
+                    category['icon'] as IconData? ?? Icons.place,
+                    size: 16.w,
+                    color: isActive ? Colors.white : AppColors.primary,
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: 6.w),
                   Text(
                     category['name'] ?? '',
                     style: TextStyle(
