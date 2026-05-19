@@ -120,6 +120,7 @@ class _MyTripTabState extends State<MyTripTab>
                         SizedBox(height: 10.h),
                         ...trips.map((trip) => _TripLineItem(
                               trip: trip,
+                              onRemove: () => provider.removeFromTrip(trip.id),
                               onTap: () => Navigator.push(
                                 context,
                                 SmoothPageRoute(
@@ -400,8 +401,9 @@ class _BagBadge extends StatelessWidget {
 class _TripLineItem extends StatelessWidget {
   final TripItem trip;
   final VoidCallback onTap;
+  final VoidCallback onRemove;
 
-  const _TripLineItem({required this.trip, required this.onTap});
+  const _TripLineItem({required this.trip, required this.onTap, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -409,106 +411,121 @@ class _TripLineItem extends StatelessWidget {
       builder: (context, provider, _) {
         final selected = provider.isSelected(trip.id);
 
-        return GestureDetector(
-          onTap: () => provider.toggleSelected(trip.id),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
+        return Dismissible(
+          key: ValueKey(trip.id),
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) => onRemove(),
+          background: Container(
             margin: EdgeInsets.only(bottom: 10.h),
-            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.error,
               borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: AppColors.surfaceBorder, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
-                ),
-              ],
             ),
-            child: Row(
-              children: [
-                // ===== Image morphs to circle on selection =====
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  width: 60.w,
-                  height: 60.w,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(selected ? 30.r : 10.r),
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.only(right: 20.w),
+            child: Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22.w),
+          ),
+          child: GestureDetector(
+            onTap: () => provider.toggleSelected(trip.id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              margin: EdgeInsets.only(bottom: 10.h),
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(color: AppColors.surfaceBorder, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(selected ? 30.r : 10.r),
-                    child: CachedNetworkImage(
-                      imageUrl: trip.image,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: AppColors.shimmerBase),
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.shimmerBase,
-                        child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                ],
+              ),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    width: 60.w,
+                    height: 60.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(selected ? 30.r : 10.r),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(selected ? 30.r : 10.r),
+                      child: CachedNetworkImage(
+                        imageUrl: trip.image,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                        errorWidget: (_, __, ___) => Container(
+                          color: AppColors.shimmerBase,
+                          child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        trip.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textHeading,
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 11.w, color: AppColors.textSecondary),
-                          SizedBox(width: 2.w),
-                          Text(
-                            trip.location,
-                            style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trip.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textHeading,
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        trip.price,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 26.w,
-                  height: 26.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selected ? AppColors.primary : Colors.transparent,
-                    border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.surfaceBorder,
-                      width: 1.5,
+                        SizedBox(height: 3.h),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, size: 11.w, color: AppColors.textSecondary),
+                            SizedBox(width: 2.w),
+                            Text(
+                              trip.location,
+                              style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 6.h),
+                        Text(
+                          trip.price,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Icon(
-                    Icons.check_rounded,
-                    size: 14.w,
-                    color: selected ? Colors.white : Colors.transparent,
+                  // Select circle
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 26.w,
+                    height: 26.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? AppColors.primary : Colors.transparent,
+                      border: Border.all(
+                        color: selected ? AppColors.primary : AppColors.surfaceBorder,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 14.w,
+                      color: selected ? Colors.white : Colors.transparent,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

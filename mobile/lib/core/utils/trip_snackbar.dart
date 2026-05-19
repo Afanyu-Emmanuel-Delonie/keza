@@ -1,0 +1,32 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../theme/app_colors.dart';
+
+void showAddedToTripSnackbar(BuildContext context, String name) {
+  ScaffoldMessenger.of(context).clearSnackBars();
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: AppColors.primaryDarker,
+      margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      duration: const Duration(seconds: 2),
+      content: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+            child: Icon(Icons.check_rounded, color: Colors.white, size: 14.w),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              '$name added to your trip',
+              style: TextStyle(color: Colors.white, fontSize: 13.sp),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}

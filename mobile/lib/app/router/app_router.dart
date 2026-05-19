@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/navigation/presentation/navigation_page.dart';
 import '../../features/trips/presentation/checkout_page.dart';
 import '../../features/trips/presentation/trip_planner/trip_planner_page.dart';
 
 class AppRouter {
+  static const String splash   = '/splash';
   static const String home     = '/';
   static const String plan     = '/plan';
   static const String checkout = '/checkout';
 
   static final GoRouter router = GoRouter(
-    initialLocation: home,
+    initialLocation: splash,
     routes: [
+      GoRoute(
+        path: splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: home,
         builder: (context, state) => const NavigationPage(),
@@ -20,7 +26,7 @@ class AppRouter {
         path: plan,
         pageBuilder: (context, state) => _expandPage(
           key: state.pageKey,
-          child: const TripPlannerPage(),
+          child: const CheckoutPage(),
         ),
       ),
       GoRoute(

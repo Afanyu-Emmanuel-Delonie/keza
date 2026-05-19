@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -8,10 +9,11 @@ import '../../../core/widgets/animated_card_item.dart';
 import '../../../shared/widgets/AI_Card.dart';
 import '../../../shared/widgets/Categories.dart';
 import '../../../shared/widgets/search.dart';
+import '../../../core/utils/trip_snackbar.dart';
 import '../../notifications/presentation/notifications_page.dart';
 import '../../trips/providers/trips_provider.dart';
-import 'DestinationDetails.dart';
 import 'AccommodationDetails.dart';
+import 'DestinationDetails.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -22,6 +24,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,6 +72,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// ── Section header ──────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String title;
   final int index;
@@ -119,6 +123,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+// ── Home header with SVG logo ────────────────────────────────────────────────
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader();
 
@@ -167,8 +172,16 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _RecommendedList extends StatelessWidget {
+// ── Recommended horizontal list ──────────────────────────────────────────────
+class _RecommendedList extends StatefulWidget {
   const _RecommendedList();
+
+  @override
+  State<_RecommendedList> createState() => _RecommendedListState();
+}
+
+class _RecommendedListState extends State<_RecommendedList> {
+  final Set<int> _liked = {};
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +194,7 @@ class _RecommendedList extends StatelessWidget {
         itemCount: AppConstants.topDestinations.length,
         itemBuilder: (context, index) {
           final item = AppConstants.topDestinations[index];
+          final liked = _liked.contains(index);
           return GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -222,7 +236,7 @@ class _RecommendedList extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // ===== Rating + Favourite =====
+                    // ── Top overlay: rating + favourite + arrow ──
                     Positioned(
                       top: 12.h,
                       left: 12.w,
@@ -230,10 +244,11 @@ class _RecommendedList extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Rating badge
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.45),
+                              color: Colors.black.withOpacity(0.35),
                               borderRadius: BorderRadius.circular(20.r),
                             ),
                             child: Row(
@@ -246,105 +261,73 @@ class _RecommendedList extends StatelessWidget {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 11.sp,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Consumer<TripsProvider>(
-                            builder: (context, provider, _) {
-                              final tripItem = TripItem(
-                                id: 'rec_$index',
-                                name: item['name']!,
-                                location: item['location']!,
-                                province: 'Rwanda',
-                                image: item['image']!,
-                                price: item['price']!,
-                                rating: item['rating']!,
-                              );
-                              final isFav = provider.favourites.any((f) => f.name == item['name']);
-                              final inTrip = provider.isInTrip(item['name']!);
-                              return GestureDetector(
-                                onTap: () {
-                                  if (!inTrip) provider.toggleFavourite(tripItem);
-                                },
+                          // Favourite + arrow
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  if (liked) _liked.remove(index); else _liked.add(index);
+                                }),
                                 child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 220),
-                                  width: 32.w,
-                                  height: 32.w,
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: EdgeInsets.all(6.w),
                                   decoration: BoxDecoration(
-                                    color: isFav
-                                        ? AppColors.primary
-                                        : Colors.black.withOpacity(0.45),
+                                    color: liked
+                                        ? AppColors.error.withOpacity(0.85)
+                                        : Colors.black.withOpacity(0.35),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                                    liked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
                                     color: Colors.white,
-                                    size: 16.w,
+                                    size: 14.w,
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    // ===== Name, Location & CTA =====
+                    // ── Bottom: name + location ──
                     Positioned(
                       bottom: 14.h,
                       left: 14.w,
                       right: 14.w,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  item['name']!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 3.h),
-                                Row(
-                                  children: [
-                                    Icon(Icons.location_on, size: 11.w, color: Colors.white70),
-                                    SizedBox(width: 3.w),
-                                    Expanded(
-                                      child: Text(
-                                        item['location']!,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(color: Colors.white70, fontSize: 11.sp),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          Text(
+                            item['name']!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15.sp,
                             ),
                           ),
-                          SizedBox(width: 8.w),
-                          Container(
-                            width: 34.w,
-                            height: 34.w,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 16.w,
-                            ),
+                          SizedBox(height: 3.h),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, size: 11.w, color: Colors.white70),
+                              SizedBox(width: 3.w),
+                              Expanded(
+                                child: Text(
+                                  item['location']!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -360,69 +343,222 @@ class _RecommendedList extends StatelessWidget {
   }
 }
 
-const _kFeaturedStays = [
-  {'name': 'Luxury Green Villa',  'location': 'Musanze, Rwanda', 'price': '\$120.00', 'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop'},
-  {'name': 'Kigali Serena Hotel', 'location': 'Kigali CBD',      'price': '\$180.00', 'image': 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=400&fit=crop'},
-  {'name': 'Lake Kivu Serena',    'location': 'Rubavu, Rwanda',  'price': '\$150.00', 'image': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=400&fit=crop'},
+// ── Featured Stay — Kigali stays with like, rating, add-to-trip ──────────────
+const _kKigaliStays = [
+  {
+    'id': 'stay_kigali_0',
+    'name': 'Kigali Serena Hotel',
+    'location': 'Kiyovu, Kigali',
+    'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop',
+    'price': '\$180.00',
+    'rating': '4.9',
+    'reviews': '312',
+  },
+  {
+    'id': 'stay_kigali_1',
+    'name': 'Radisson Blu Kigali',
+    'location': 'Gasabo, Kigali',
+    'image': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=400&fit=crop',
+    'price': '\$150.00',
+    'rating': '4.7',
+    'reviews': '198',
+  },
+  {
+    'id': 'stay_kigali_2',
+    'name': 'Nyandungu Eco Lodge',
+    'location': 'Nyarugunga, Kigali',
+    'image': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=400&fit=crop',
+    'price': '\$95.00',
+    'rating': '4.5',
+    'reviews': '87',
+  },
 ];
 
-class _FeaturedStaySection extends StatelessWidget {
+class _FeaturedStaySection extends StatefulWidget {
   const _FeaturedStaySection();
 
   @override
+  State<_FeaturedStaySection> createState() => _FeaturedStaySectionState();
+}
+
+class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
+  @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _kFeaturedStays.length,
-      itemBuilder: (context, index) {
-        final stay = _kFeaturedStays[index];
-        return Container(
-          margin: EdgeInsets.only(bottom: 12.h),
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: CachedNetworkImage(
-                  imageUrl: stay['image']!,
-                  width: 80.w,
-                  height: 80.w,
-                  fit: BoxFit.cover,
+    return Consumer<TripsProvider>(
+      builder: (context, provider, _) {
+        return ListView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _kKigaliStays.length,
+          itemBuilder: (context, index) {
+            final stay = _kKigaliStays[index];
+            final tripItem = TripItem(
+              id: stay['id']!,
+              name: stay['name']!,
+              location: stay['location']!,
+              province: 'Kigali City',
+              image: stay['image']!,
+              price: stay['price']!,
+              rating: stay['rating']!,
+              isAccommodation: true,
+            );
+            final liked = provider.isAccommodationLiked(tripItem.id);
+            final added = provider.isAccommodationSelected(tripItem.id);
+
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                SmoothPageRoute(
+                  page: AccommodationDetails(
+                    title: stay['name']!,
+                    location: stay['location']!,
+                    images: [stay['image']!],
+                    price: stay['price'],
+                    rating: stay['rating'],
+                  ),
                 ),
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stay['name']!,
-                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    SizedBox(height: 4.h),
-                    Text(stay['location']!, style: TextStyle(color: AppColors.textSecondary, fontSize: 11.sp)),
-                    SizedBox(height: 8.h),
-                    Text(stay['price']!, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Image
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: CachedNetworkImage(
+                        imageUrl: stay['image']!,
+                        width: 80.w,
+                        height: 80.w,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                        errorWidget: (_, __, ___) => Container(color: AppColors.shimmerBase),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            stay['name']!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textHeading,
+                            ),
+                          ),
+                          SizedBox(height: 3.h),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, size: 11.w, color: AppColors.textSecondary),
+                              SizedBox(width: 2.w),
+                              Text(
+                                stay['location']!,
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 11.sp),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Row(
+                            children: [
+                              Icon(Icons.star_rounded, color: Colors.amber, size: 13.w),
+                              SizedBox(width: 3.w),
+                              Text(
+                                stay['rating']!,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textHeading,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '(${stay['reviews']} reviews)',
+                                style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Text(
+                            stay['price']!,
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    // Actions
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () => provider.toggleLikeAccommodation(tripItem),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.all(6.w),
+                            decoration: BoxDecoration(
+                              color: liked ? AppColors.errorSoft : AppColors.surfaceBorder.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              liked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                              size: 16.w,
+                              color: liked ? AppColors.error : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        GestureDetector(
+                          onTap: () {
+                            provider.toggleSelectAccommodation(tripItem);
+                            if (!added) showAddedToTripSnackbar(context, stay['name']!);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+                            decoration: BoxDecoration(
+                              color: added ? AppColors.primarySoft : AppColors.primary,
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Text(
+                              added ? 'Added' : '+ Trip',
+                              style: TextStyle(
+                                color: added ? AppColors.primary : Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 }
+
+

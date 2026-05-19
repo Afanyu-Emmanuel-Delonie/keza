@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/trip_snackbar.dart';
 import '../../../core/widgets/animated_card_item.dart';
 import '../providers/trips_provider.dart';
 
@@ -243,7 +244,10 @@ class _FavTripCard extends StatelessWidget {
                       SizedBox(height: 10.h),
                       // Add to Trip button
                       GestureDetector(
-                        onTap: () => provider.toggleAddTrip(item),
+                        onTap: () {
+                          if (!added) showAddedToTripSnackbar(context, item.name);
+                          provider.toggleAddTrip(item);
+                        },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
