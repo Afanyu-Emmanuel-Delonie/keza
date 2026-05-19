@@ -5,6 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/animated_card_item.dart';
+import '../../../shared/widgets/AI_Card.dart';
+import '../../../shared/widgets/Categories.dart';
+import '../../../shared/widgets/search.dart';
+import '../../notifications/presentation/notifications_page.dart';
+import 'DestinationDetails.dart';
+import 'AccommodationDetails.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,23 +21,56 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ========== Header ================================
               const AnimatedCardItem(index: 0, child: _HomeHeader()),
-              SizedBox(height: 18.h),
-              const AnimatedCardItem(index: 1, child: _SearchBar()),
               SizedBox(height: 20.h),
-              const AnimatedCardItem(index: 2, child: _CategoriesSection()),
+
+              // ========== Search ================================
+              const AnimatedCardItem(index: 1, child: CustomSearchBar()),
+              SizedBox(height: 20.h),
+
+              // ========== AI Card ================================
+              AnimatedCardItem(
+                index: 2,
+                child: AiCallToAction(onGetStartedPressed: () {}),
+              ),
+              SizedBox(height: 24.h),
+
+              // ========== Categories ================================
+              AnimatedCardItem(
+                index: 3,
+                child: CategoriesSection(
+                  categories: AppConstants.categories,
+                  onCategorySelected: (category) {},
+                ),
+              ),
+              SizedBox(height: 24.h),
+
+              // ========== Recommended ================================
+              _SectionHeader(
+                title: 'Recommended',
+                index: 4,
+                subtitle: 'Explore More',
+                onTap: () {},
+              ),
               SizedBox(height: 12.h),
-              const _SectionHeader(title: 'Recommended', index: 3, subtitle: 'Explore More'),
-              SizedBox(height: 10.h),
               const _RecommendedList(),
-              SizedBox(height: 20.h),
-              const _SectionHeader(title: 'Featured Stay', index: 5, subtitle: 'See all'),
-              SizedBox(height: 10.h),
+              SizedBox(height: 24.h),
+
+              // ========== Featured Stay ================================
+              _SectionHeader(
+                title: 'Featured Stay',
+                index: 5,
+                subtitle: 'See all',
+                onTap: () {},
+              ),
+              SizedBox(height: 12.h),
               const _FeaturedStaySection(),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
@@ -44,8 +83,14 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final int index;
   final String? subtitle;
+  final VoidCallback? onTap;
 
-  const _SectionHeader({required this.title, required this.index, this.subtitle});
+  const _SectionHeader({
+    required this.title,
+    required this.index,
+    this.subtitle,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,26 +102,26 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.sp,
+                ),
           ),
-
-          GestureDetector(
-            child: Row(
-              children: [
+          if (subtitle != null)
+            GestureDetector(
+              onTap: onTap,
+              child: Row(children: [
                 Text(
                   subtitle!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 11.sp,
-                  ),
+                        color: AppColors.primary,
+                        fontSize: 11.sp,
+                      ),
                 ),
                 SizedBox(width: 4.w),
-                const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.primary),
-              ]
-            ),
-          )
+                const Icon(Icons.arrow_forward_ios,
+                    size: 12, color: AppColors.primary),
+              ]),
+            )
         ],
       ),
     );
@@ -104,16 +149,16 @@ class _HomeHeader extends StatelessWidget {
                 Text(
                   'Welcome Back',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 11.sp,
-                  ),
+                        color: AppColors.textSecondary,
+                        fontSize: 11.sp,
+                      ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   'Afanyu Emmanuel',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ],
             ),
@@ -123,7 +168,10 @@ class _HomeHeader extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                SmoothPageRoute(page: const NotificationsPage()),
+              ),
               icon: const Icon(Icons.notifications_none, size: 26),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -151,102 +199,6 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  const _SearchBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(left: 14.w, right: 6.w, top: 6.h, bottom: 6.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(50.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: AppColors.textSecondary, size: 20.w),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search for places',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                hintStyle: TextStyle(fontSize: 13.sp),
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.all(8.w),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.tune_rounded, color: Colors.white, size: 16.w),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoriesSection extends StatelessWidget {
-  const _CategoriesSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 85.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: AppConstants.categories.length,
-        itemBuilder: (context, index) {
-          final category = AppConstants.categories[index];
-          return Container(
-            margin: EdgeInsets.only(right: 14.w),
-            width: 60.w,
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(100.r),
-                  child: CachedNetworkImage(
-                    imageUrl: category['image']!,
-                    width: 52.w,
-                    height: 52.w,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  category['name']!,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _RecommendedList extends StatelessWidget {
   const _RecommendedList();
 
@@ -260,84 +212,102 @@ class _RecommendedList extends StatelessWidget {
         itemCount: AppConstants.categories.length,
         itemBuilder: (context, index) {
           final item = AppConstants.categories[index];
-          return AnimatedCardItem(
-            index: index + 4,
-            child: Container(
-              margin: EdgeInsets.only(right: 12.w),
-              width: 250.w,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16.r),
-                child: Stack(
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: item['image']!,
-                      width: 250.w,
-                      height: 230.h,
-                      fit: BoxFit.cover,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.15), // Slightly darker top layer to balance white components
-                            Colors.black.withOpacity(0.70),
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                SmoothPageRoute(
+                  page: DestinationDetails(
+                    title: 'Nyandungu Park',
+                    location: 'Kigali, Rwanda',
+                    images: [item['image']!],
+                  ),
+                ),
+              );
+            },
+            child: AnimatedCardItem(
+              index: index + 4,
+              child: Container(
+                margin: EdgeInsets.only(right: 12.w),
+                width: 250.w,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Stack(
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: item['image']!,
+                        width: 250.w,
+                        height: 230.h,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.15),
+                              Colors.black.withOpacity(0.70),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 12.h,
+                        left: 12.w,
+                        right: 12.w,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.star,
+                                      color: Colors.amber, size: 13.w),
+                                  SizedBox(width: 3.w),
+                                  Text(
+                                    '4.5',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {},
+                              child: Container(
+                                padding: EdgeInsets.all(6.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.25),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.favorite_outline_rounded,
+                                    color: Colors.white, size: 16.w),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    // --- RECOMENDED CARD: TOP FLOATING ACTIONS (RATING & SAVE) ---
-                    Positioned(
-                      top: 12.h,
-                      left: 12.w,
-                      right: 12.w,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.star, color: Colors.amber, size: 13.w),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  '4.5',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // Safe logic placement for bookmarks can execute here
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(6.w),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.25),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                  Icons.favorite_outline_rounded,
-                                  color: Colors.white,
-                                  size: 16.w
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildInfo(context),
-                  ],
+                      _buildInfo(context),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -381,7 +351,8 @@ class _RecommendedList extends StatelessWidget {
                         'Kigali, Rwanda',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                        style:
+                            TextStyle(color: Colors.white70, fontSize: 11.sp),
                       ),
                     ),
                   ],
@@ -395,7 +366,8 @@ class _RecommendedList extends StatelessWidget {
             radius: 16.r,
             child: Transform.rotate(
               angle: -math.pi / 4,
-              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+              child: const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 16),
             ),
           ),
         ],
@@ -431,107 +403,132 @@ class _StayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10.r),
-            child: CachedNetworkImage(
-              imageUrl: stay['image']!,
-              width: 75.w,
-              height: 75.w,
-              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          SmoothPageRoute(
+            page: AccommodationDetails(
+              title: 'Luxury Green Villa',
+              location: 'Musanze, Rwanda',
+              images: [stay['image']!],
+              price: '\$120.00',
+              rating: '4.8',
             ),
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Luxury Green Villa',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    // --- FEATURED CARD: TOP RIGHT SAVE ACTION ---
-                    GestureDetector(
-                      onTap: () {
-                        // Safe logic placement for bookmark state toggling
-                      },
-                      child: Icon(
-                        Icons.favorite_outline_rounded,
-                        color: AppColors.textSecondary.withOpacity(0.6),
-                        size: 18.w,
-                      ),
-                    ),
-                  ],
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(10.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: CachedNetworkImage(
+                imageUrl: stay['image']!,
+                width: 75.w,
+                height: 75.w,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
-                SizedBox(height: 2.h),
-                Row(
-                  children: [
-                    Icon(Icons.location_on, size: 12.w, color: AppColors.textSecondary),
-                    SizedBox(width: 2.w),
-                    Text(
-                      'Musanze, Rwanda',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11.sp),
-                    ),
-                  ],
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
                 ),
-                SizedBox(height: 6.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '\$120/night',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                    // --- FEATURED CARD: ALIGNED BOTTOM RATING INDICATOR ---
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 12),
-                        Text(
-                          ' 4.8',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[800],
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Luxury Green Villa',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+                      ),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Icon(
+                          Icons.favorite_outline_rounded,
+                          color: AppColors.textSecondary.withOpacity(0.6),
+                          size: 18.w,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 2.h),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on,
+                          size: 12.w, color: AppColors.textSecondary),
+                      SizedBox(width: 2.w),
+                      Text(
+                        'Musanze, Rwanda',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(fontSize: 11.sp),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$120.00',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.sp,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 12),
+                          Text(
+                            ' 4.8',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -8,58 +8,55 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
 
-      // ==============================
-      // COLOR SCHEME
-      // ==============================
+      // ========== Color Scheme ================================
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
         secondary: AppColors.primaryDark,
         surface: AppColors.surface,
         error: AppColors.error,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: AppColors.black,
-        onError: Colors.white,
+        onPrimary: AppColors.surface,
+        onSecondary: AppColors.surface,
+        onSurface: AppColors.textHeading,
+        onError: AppColors.surface,
       ),
 
       scaffoldBackgroundColor: AppColors.background,
-      cardColor: AppColors.card,
+      cardColor: AppColors.cardBackground,
+      dividerColor: AppColors.divider,
 
-      // ==============================
-      // TYPOGRAPHY
-      // ==============================
+      // ========== Typography ================================
       textTheme: TextTheme(
         // HEADINGS → Montserrat
         displayLarge: GoogleFonts.montserrat(
           fontSize: 32.sp,
           fontWeight: FontWeight.bold,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
         displayMedium: GoogleFonts.montserrat(
           fontSize: 28.sp,
           fontWeight: FontWeight.bold,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
         displaySmall: GoogleFonts.montserrat(
           fontSize: 24.sp,
           fontWeight: FontWeight.bold,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
         headlineMedium: GoogleFonts.montserrat(
           fontSize: 24.sp,
           fontWeight: FontWeight.w600,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
         titleLarge: GoogleFonts.montserrat(
           fontSize: 18.sp,
           fontWeight: FontWeight.w600,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
         titleMedium: GoogleFonts.montserrat(
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
 
         // BODY → Inter
@@ -87,25 +84,21 @@ class AppTheme {
         ),
       ),
 
-      // ==============================
-      // APP BAR
-      // ==============================
+      // ========== App Bar ================================
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.black,
+        backgroundColor: AppColors.appBarBackground,
+        foregroundColor: AppColors.textHeading,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.montserrat(
           fontSize: 20.sp,
           fontWeight: FontWeight.w600,
-          color: AppColors.black,
+          color: AppColors.textHeading,
         ),
-        iconTheme: const IconThemeData(color: AppColors.black),
+        iconTheme: const IconThemeData(color: AppColors.textHeading),
       ),
 
-      // ==============================
-      // BUTTONS
-      // ==============================
+      // ========== Buttons ================================
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -122,12 +115,10 @@ class AppTheme {
         ),
       ),
 
-      // ==============================
-      // INPUT FIELDS
-      // ==============================
+      // ========== Input Fields ================================
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.white,
+        fillColor: AppColors.inputFill,
         contentPadding: EdgeInsets.symmetric(
           horizontal: 16.w,
           vertical: 14.h,
@@ -161,11 +152,9 @@ class AppTheme {
         ),
       ),
 
-      // ==============================
-      // NAVIGATION BAR
-      // ==============================
+      // ========== Navigation Bar ================================
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.navBarBackground,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
         selectedLabelStyle: GoogleFonts.inter(
