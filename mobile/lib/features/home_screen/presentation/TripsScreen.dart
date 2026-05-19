@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../shared/widgets/keza_app_bar.dart';
 import 'DestinationDetails.dart';
 
 class TripsScreen extends StatefulWidget {
@@ -31,37 +32,48 @@ class _TripsScreenState extends State<TripsScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text(
-          'My Trips',
-          style: TextStyle(
-            color: AppColors.black,
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+      appBar: KezaAppBar(
+        title: 'My Trips',
+        subtitle: 'Your travel history & plans',
+        showBack: false,
+        actions: [
+          AppBarAction(
+            icon: Icons.tune_rounded,
+            onTap: () {},
           ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 3.h,
-          labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(text: 'Planned'),
-            Tab(text: 'Favorites'),
-            Tab(text: 'Stays'),
-          ],
-        ),
+        ],
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          const _PlannedTripsTab(),
-          const _FavoritesTab(),
-          const _AccommodationsTab(),
+          // ========== Tab Bar ================================
+          Container(
+            color: AppColors.background,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.primary,
+              indicatorWeight: 2.5.h,
+              indicatorSize: TabBarIndicatorSize.label,
+              labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+              tabs: const [
+                Tab(text: 'Planned'),
+                Tab(text: 'Favorites'),
+                Tab(text: 'Stays'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                const _PlannedTripsTab(),
+                const _FavoritesTab(),
+                const _AccommodationsTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );

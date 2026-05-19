@@ -117,20 +117,6 @@ class AppConstants {
         },
       ]
     },
-    {
-      'name': 'Southern Province',
-      'image': 'https://images.unsplash.com/photo-1523812350648-2727e4e58b3e?q=80&w=400&fit=crop',
-      'places_count': '10 Places',
-      'destinations': [
-        {
-          'name': 'King\'s Palace Museum',
-          'location': 'Nyanza',
-          'image': 'https://images.unsplash.com/photo-1523812350648-2727e4e58b3e?q=80&w=400&fit=crop',
-          'rating': '4.6',
-          'price': '\$15.00',
-        },
-      ]
-    },
   ];
 
   static const List<Map<String, String>> topDestinations = [

@@ -5,6 +5,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/animated_card_item.dart';
+import '../../../shared/widgets/AI_Card.dart';
+import '../../../shared/widgets/Categories.dart';
+import '../../../shared/widgets/search.dart';
+import '../../notifications/presentation/notifications_page.dart';
 import 'DestinationDetails.dart';
 import 'AccommodationDetails.dart';
 
@@ -17,33 +21,56 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ========== Header ================================
               const AnimatedCardItem(index: 0, child: _HomeHeader()),
-              SizedBox(height: 18.h),
-              const AnimatedCardItem(index: 1, child: _SearchBar()),
               SizedBox(height: 20.h),
-              const AnimatedCardItem(index: 2, child: _CategoriesSection()),
-              SizedBox(height: 12.h),
+
+              // ========== Search ================================
+              const AnimatedCardItem(index: 1, child: CustomSearchBar()),
+              SizedBox(height: 20.h),
+
+              // ========== AI Card ================================
+              AnimatedCardItem(
+                index: 2,
+                child: AiCallToAction(onGetStartedPressed: () {}),
+              ),
+              SizedBox(height: 24.h),
+
+              // ========== Categories ================================
+              AnimatedCardItem(
+                index: 3,
+                child: CategoriesSection(
+                  categories: AppConstants.categories,
+                  onCategorySelected: (category) {},
+                ),
+              ),
+              SizedBox(height: 24.h),
+
+              // ========== Recommended ================================
               _SectionHeader(
                 title: 'Recommended',
-                index: 3,
+                index: 4,
                 subtitle: 'Explore More',
                 onTap: () {},
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 12.h),
               const _RecommendedList(),
-              SizedBox(height: 20.h),
+              SizedBox(height: 24.h),
+
+              // ========== Featured Stay ================================
               _SectionHeader(
                 title: 'Featured Stay',
                 index: 5,
                 subtitle: 'See all',
                 onTap: () {},
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 12.h),
               const _FeaturedStaySection(),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
@@ -141,7 +168,10 @@ class _HomeHeader extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                SmoothPageRoute(page: const NotificationsPage()),
+              ),
               icon: const Icon(Icons.notifications_none, size: 26),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -169,110 +199,6 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  const _SearchBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(left: 14.w, right: 6.w, top: 6.h, bottom: 6.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(50.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: AppColors.textSecondary, size: 20.w),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search for places',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                hintStyle: TextStyle(fontSize: 13.sp),
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.all(8.w),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.tune_rounded, color: Colors.white, size: 16.w),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoriesSection extends StatelessWidget {
-  const _CategoriesSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 85.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: AppConstants.categories.length,
-        itemBuilder: (context, index) {
-          final category = AppConstants.categories[index];
-          return Container(
-            margin: EdgeInsets.only(right: 14.w),
-            width: 60.w,
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(100.r),
-                  child: CachedNetworkImage(
-                    imageUrl: category['image']!,
-                    width: 52.w,
-                    height: 52.w,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  category['name']!,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _RecommendedList extends StatelessWidget {
   const _RecommendedList();
 
@@ -290,13 +216,11 @@ class _RecommendedList extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => DestinationDetails(
+                SmoothPageRoute(
+                  page: DestinationDetails(
                     title: 'Nyandungu Park',
                     location: 'Kigali, Rwanda',
-                    images: [
-                      item['image']!
-                      ]
+                    images: [item['image']!],
                   ),
                 ),
               );
@@ -483,8 +407,8 @@ class _StayCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => AccommodationDetails(
+          SmoothPageRoute(
+            page: AccommodationDetails(
               title: 'Luxury Green Villa',
               location: 'Musanze, Rwanda',
               images: [stay['image']!],

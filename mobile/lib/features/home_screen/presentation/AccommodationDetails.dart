@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/animated_card_item.dart';
 
 class AccommodationDetails extends StatefulWidget {
   final String title;
@@ -56,8 +58,8 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
   void _openFullScreenImage(int initialIndex) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => FullScreenImageViewer(
+      SmoothPageRoute(
+        page: FullScreenImageViewer(
           images: widget.images,
           initialIndex: initialIndex,
         ),
@@ -74,135 +76,17 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
           CustomScrollView(
             controller: _scrollController,
             slivers: [
-              //=============== APP BAR SECTION ========================
-              SliverAppBar(
-                expandedHeight: 340.h,
-                pinned: true,
-                elevation: 0,
-                backgroundColor: AppColors.background,
-                leading: Padding(
-                  padding: EdgeInsets.all(8.w),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.4),
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    ),
-                  ),
-                ),
-                title: _titleVisible
-                    ? Text(
-                        widget.title,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-                actions: [
-                  Padding(
-                    padding: EdgeInsets.only(right: 8.w),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withOpacity(0.4),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.favorite_outline_rounded,
-                            color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(right: 16.w),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black.withOpacity(0.4),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.share, color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      PageView.builder(
-                        controller: _pageController,
-                        itemCount: widget.images.isEmpty ? 1 : widget.images.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentCarouselPage = index;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          final imageUrl =
-                              widget.images.isEmpty ? '' : widget.images[index];
-                          return GestureDetector(
-                            onTap: () => _openFullScreenImage(index),
-                            child: Hero(
-                              tag: 'gallery_image_$index',
-                              child: CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                      child: CircularProgressIndicator()),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.broken_image,
-                                      size: 50, color: Colors.grey),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.35),
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.35),
-                            ],
-                            stops: const [0.0, 0.3, 1.0],
-                          ),
-                        ),
-                      ),
-                      if (widget.images.length > 1)
-                        Positioned(
-                          bottom: 20.h,
-                          left: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              widget.images.length,
-                              (index) => AnimatedContainer(
-                                duration: const Duration(milliseconds: 240),
-                                margin: EdgeInsets.symmetric(horizontal: 4.w),
-                                width: _currentCarouselPage == index ? 18.w : 6.w,
-                                height: 6.w,
-                                decoration: BoxDecoration(
-                                  color: _currentCarouselPage == index
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.4),
-                                  borderRadius: BorderRadius.circular(3.r),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+              // ========== App Bar ================================
+              _DetailsSliverAppBar(
+                title: widget.title,
+                titleVisible: _titleVisible,
+                images: widget.images,
+                currentPage: _currentCarouselPage,
+                pageController: _pageController,
+                onImageTap: _openFullScreenImage,
+                onPageChanged: (i) => setState(() => _currentCarouselPage = i),
               ),
-              //=============== CONTENT SECTION ========================
+              // ========== Content ================================
               SliverToBoxAdapter(
                 child: Container(
                   padding: EdgeInsets.all(20.w),
@@ -331,7 +215,7 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
               ),
             ],
           ),
-          //=============== BOTTOM BOOKING BAR ========================
+          // ========== Bottom Booking Bar ================================
           Positioned(
             bottom: 0,
             left: 0,
@@ -356,8 +240,7 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
                     children: [
                       Text(
                         'Price per night',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12.sp),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12.sp),
                       ),
                       Text(
                         widget.price!,
@@ -371,21 +254,31 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
                   ),
                   SizedBox(width: 30.w),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
-                        shape: RoundedRectangleBorder(
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Book Accommodation',
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.bold),
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_month_outlined, color: Colors.white, size: 18.w),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'Book Now',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -394,6 +287,202 @@ class _AccommodationDetailsState extends State<AccommodationDetails> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ========== Shared Details Sliver App Bar ================================
+// Imported from DestinationDetails — same widget, same style.
+// Defined here as a local copy so AccommodationDetails has no cross-file dep.
+class _DetailsSliverAppBar extends StatelessWidget {
+  final String title;
+  final bool titleVisible;
+  final List<String> images;
+  final int currentPage;
+  final PageController pageController;
+  final Function(int) onImageTap;
+  final ValueChanged<int> onPageChanged;
+
+  const _DetailsSliverAppBar({
+    required this.title,
+    required this.titleVisible,
+    required this.images,
+    required this.currentPage,
+    required this.pageController,
+    required this.onImageTap,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      expandedHeight: 340.h,
+      pinned: true,
+      elevation: 0,
+      centerTitle: false,
+      backgroundColor: AppColors.background,
+      systemOverlayStyle: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      automaticallyImplyLeading: false,
+      title: titleVisible
+          ? Text(
+              title,
+              style: TextStyle(
+                color: AppColors.textHeading,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.3,
+              ),
+            )
+          : null,
+      // ========== Leading — back button ================================
+      leading: Padding(
+        padding: EdgeInsets.only(left: 12.w, top: 6.h, bottom: 6.h),
+        child: GestureDetector(
+          onTap: () => Navigator.maybePop(context),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutQuart,
+            decoration: BoxDecoration(
+              color: titleVisible
+                  ? AppColors.surfaceBorder.withOpacity(0.6)
+                  : Colors.black.withOpacity(0.35),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16.w,
+              color: titleVisible ? AppColors.textHeading : Colors.white,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        _DetailsAction(
+          icon: Icons.favorite_outline_rounded,
+          collapsed: titleVisible,
+          onTap: () {},
+        ),
+        _DetailsAction(
+          icon: Icons.share_outlined,
+          collapsed: titleVisible,
+          onTap: () {},
+          isLast: true,
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            PageView.builder(
+              controller: pageController,
+              itemCount: images.isEmpty ? 1 : images.length,
+              onPageChanged: onPageChanged,
+              itemBuilder: (context, index) {
+                final url = images.isEmpty ? '' : images[index];
+                return GestureDetector(
+                  onTap: () => onImageTap(index),
+                  child: Hero(
+                    tag: 'gallery_image_$index',
+                    child: CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                      errorWidget: (_, __, ___) => Container(
+                        color: AppColors.shimmerBase,
+                        child: Icon(Icons.broken_image, size: 50.w, color: AppColors.textDisabled),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.40),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.30),
+                  ],
+                  stops: const [0.0, 0.35, 1.0],
+                ),
+              ),
+            ),
+            if (images.length > 1)
+              Positioned(
+                bottom: 20.h,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    images.length,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 240),
+                      margin: EdgeInsets.symmetric(horizontal: 3.w),
+                      width: currentPage == i ? 18.w : 6.w,
+                      height: 6.w,
+                      decoration: BoxDecoration(
+                        color: currentPage == i
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(3.r),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ========== Details Action Button ================================
+class _DetailsAction extends StatelessWidget {
+  final IconData icon;
+  final bool collapsed;
+  final VoidCallback onTap;
+  final bool isLast;
+
+  const _DetailsAction({
+    required this.icon,
+    required this.collapsed,
+    required this.onTap,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutQuart,
+        width: 36.w,
+        height: 36.w,
+        margin: EdgeInsets.only(
+          left: 8.w,
+          right: isLast ? 16.w : 0,
+        ),
+        decoration: BoxDecoration(
+          color: collapsed
+              ? AppColors.surfaceBorder.withOpacity(0.6)
+              : Colors.black.withOpacity(0.35),
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Icon(
+          icon,
+          size: 17.w,
+          color: collapsed ? AppColors.textHeading : Colors.white,
+        ),
       ),
     );
   }
