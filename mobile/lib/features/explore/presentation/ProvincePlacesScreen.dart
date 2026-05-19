@@ -90,157 +90,163 @@ class _DestinationCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(bottom: 16.h),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
+        height: 250.h,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ========== Hero Image ================================
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-              child: Stack(
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: destination['image'] as String,
-                    width: double.infinity,
-                    height: 180.h,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      height: 180.h,
-                      color: AppColors.shimmerBase,
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      height: 180.h,
-                      color: AppColors.shimmerBase,
-                      child: Icon(Icons.broken_image,
-                          color: AppColors.textDisabled, size: 40.w),
-                    ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // ========== Image ================================
+              CachedNetworkImage(
+                imageUrl: destination['image'] as String,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                errorWidget: (_, __, ___) => Container(
+                  color: AppColors.shimmerBase,
+                  child: Icon(Icons.broken_image,
+                      size: 40.w, color: AppColors.textDisabled),
+                ),
+              ),
+
+              // ========== Gradient Overlay ================================
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.15),
+                      Colors.black.withOpacity(0.72),
+                    ],
                   ),
-                  // price badge overlay
-                  Positioned(
-                    top: 12.h,
-                    right: 12.w,
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                ),
+              ),
+
+              // ========== Top Row — rating + favourite ================================
+              Positioned(
+                top: 12.h,
+                left: 12.w,
+                right: 12.w,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryDarker,
+                        color: Colors.white.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
-                      child: Text(
-                        destination['price'] as String,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star_rounded,
+                              color: Colors.amber, size: 13.w),
+                          SizedBox(width: 3.w),
+                          Text(
+                            destination['rating'] as String,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ========== Info ================================
-            Padding(
-              padding: EdgeInsets.all(14.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          destination['name'] as String,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textHeading,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      // ========== Rating Badge ================================
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 8.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star_rounded,
-                                color: Colors.amber, size: 13.w),
-                            SizedBox(width: 3.w),
-                            Text(
-                              destination['rating'] as String,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 6.h),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 13.w, color: AppColors.primary),
-                      SizedBox(width: 3.w),
-                      Text(
-                        destination['location'] as String,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  // ========== CTA Row ================================
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'View Details',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Container(
+                    GestureDetector(
+                      onTap: () {},
+                      child: Container(
                         padding: EdgeInsets.all(6.w),
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(8.r),
+                          color: Colors.white.withOpacity(0.25),
+                          shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.arrow_forward_rounded,
-                            size: 14.w, color: AppColors.primary),
+                        child: Icon(Icons.favorite_outline_rounded,
+                            color: Colors.white, size: 16.w),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              // ========== Bottom Row — info + arrow ================================
+              Positioned(
+                bottom: 12.h,
+                left: 12.w,
+                right: 12.w,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            destination['name'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.sp,
+                            ),
+                          ),
+                          SizedBox(height: 5.h),
+                          // ========== Location + Price on one line ================================
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 12.w, color: Colors.white70),
+                              SizedBox(width: 2.w),
+                              Flexible(
+                                child: Text(
+                                  destination['location'] as String,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 11.sp),
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w, vertical: 3.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(6.r),
+                                ),
+                                child: Text(
+                                  destination['price'] as String,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    // ========== Arrow — tilted 45° north-east ================================
+                    CircleAvatar(
+                      backgroundColor: AppColors.primary,
+                      radius: 16.r,
+                      child: Transform.rotate(
+                        angle: -0.785398, // -45° = north-east
+                        child: Icon(Icons.arrow_forward_rounded,
+                            color: Colors.white, size: 16.w),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
