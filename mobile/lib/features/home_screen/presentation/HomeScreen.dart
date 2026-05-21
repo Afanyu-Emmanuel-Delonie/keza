@@ -8,13 +8,35 @@ import '../../../core/widgets/animated_card_item.dart';
 import '../../../shared/widgets/AI_Card.dart';
 import '../../../shared/widgets/Categories.dart';
 import '../../../shared/widgets/search.dart';
+import '../../../core/utils/trip_snackbar.dart';
+import '../../ai/presentation/trip_builder/ai_trip_builder_screen.dart';
+import '../../navigation/presentation/navigation_page.dart';
 import '../../notifications/presentation/notifications_page.dart';
 import '../../trips/providers/trips_provider.dart';
-import 'DestinationDetails.dart';
+import '../../trips/presentation/booking_form_sheet.dart';
 import 'AccommodationDetails.dart';
+import 'DestinationDetails.dart';
+import 'all_listings_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _selectedCategory = 'all';
+
+  void _goToAllDestinations() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AllDestinationsScreen()),
+      );
+
+  void _goToAllStays() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AllStaysScreen()),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +44,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,14 +55,22 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 20.h),
               AnimatedCardItem(
                 index: 2,
-                child: AiCallToAction(onGetStartedPressed: () {}),
+                child: AiCallToAction(
+                  onGetStartedPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AiTripBuilderScreen()),
+                  ),
+                ),
               ),
               SizedBox(height: 24.h),
               AnimatedCardItem(
                 index: 3,
                 child: CategoriesSection(
-                  categories: AppConstants.categories,
-                  onCategorySelected: (category) {},
+                  categories: AppConstants.categories
+                      .where((c) => c['id'] != 'accommodation')
+                      .toList(),
+                  onCategorySelected: (cat) =>
+                      setState(() => _selectedCategory = cat['id'] as String),
                 ),
               ),
               SizedBox(height: 24.h),
@@ -47,19 +78,19 @@ class HomeScreen extends StatelessWidget {
                 title: 'Recommended',
                 index: 4,
                 subtitle: 'Explore More',
-                onTap: () {},
+                onTap: _goToAllDestinations,
               ),
               SizedBox(height: 12.h),
-              const _RecommendedList(),
+              _RecommendedList(categoryFilter: _selectedCategory),
               SizedBox(height: 24.h),
               _SectionHeader(
-                title: 'Featured Stay',
+                title: _selectedCategory == 'accommodation' ? 'Stays' : 'Featured Stay',
                 index: 5,
                 subtitle: 'See all',
-                onTap: () {},
+                onTap: _goToAllStays,
               ),
               SizedBox(height: 12.h),
-              const _FeaturedStaySection(),
+              _FeaturedStaySection(categoryFilter: _selectedCategory),
               SizedBox(height: 16.h),
             ],
           ),
@@ -69,6 +100,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// ── Section header ────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String title;
   final int index;
@@ -112,13 +144,14 @@ class _SectionHeader extends StatelessWidget {
                 SizedBox(width: 4.w),
                 const Icon(Icons.arrow_forward_ios, size: 11, color: AppColors.primary),
               ]),
-            )
+            ),
         ],
       ),
     );
   }
 }
 
+// ── Home header ───────────────────────────────────────────────────────────────
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader();
 
@@ -167,192 +200,187 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
+// ── Recommended horizontal list ───────────────────────────────────────────────
 class _RecommendedList extends StatelessWidget {
-  const _RecommendedList();
+  final String categoryFilter;
+  const _RecommendedList({this.categoryFilter = 'all'});
+
+  List<Map<String, String>> _filtered() {
+    if (categoryFilter == 'all') return AppConstants.topDestinations;
+    final kw = AppConstants.categoryKeywords[categoryFilter] ?? [];
+    if (kw.isEmpty) return AppConstants.topDestinations;
+    return AppConstants.topDestinations.where((d) {
+      final text = '${d['name']!} ${d['location']!}'.toLowerCase();
+      return kw.any((k) => text.contains(k));
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final destinations = _filtered();
+    if (destinations.isEmpty) {
+      return SizedBox(
+        height: 80.h,
+        child: Center(
+          child: Text('No destinations in this category',
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary)),
+        ),
+      );
+    }
     return SizedBox(
       height: 240.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        padding: EdgeInsets.zero,
-        itemCount: AppConstants.topDestinations.length,
-        itemBuilder: (context, index) {
-          final item = AppConstants.topDestinations[index];
-          return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              SmoothPageRoute(
-                page: DestinationDetails(
-                  title: item['name']!,
-                  location: item['location']!,
-                  images: [item['image']!],
-                  price: item['price'],
-                  rating: item['rating'],
+      child: Consumer<TripsProvider>(
+        builder: (context, provider, _) {
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.zero,
+            itemCount: destinations.length,
+            itemBuilder: (context, index) {
+              final item = destinations[index];
+              final tripItem = TripItem(
+                id: 'dest_${item['name']!.replaceAll(' ', '_').toLowerCase()}',
+                name: item['name']!,
+                location: item['location']!,
+                province: AppConstants.inferProvince(item['location']!),
+                image: item['image']!,
+                price: item['price'] ?? 'Free',
+                rating: item['rating'] ?? '4.5',
+              );
+              final liked = provider.isFavourite(tripItem.id);
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: DestinationDetails(
+                      title: item['name']!,
+                      location: item['location']!,
+                      images: [item['image']!],
+                      price: item['price'],
+                      rating: item['rating'],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            child: Container(
-              margin: EdgeInsets.only(right: 15.w),
-              width: 220.w,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.r),
-                color: Colors.grey[200],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20.r),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: item['image']!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Colors.grey[200]),
-                      errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.82)],
-                          stops: const [0.45, 1.0],
+                child: Container(
+                  margin: EdgeInsets.only(right: 15.w),
+                  width: 220.w,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20.r),
+                    color: Colors.grey[200],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: item['image']!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(color: Colors.grey[200]),
+                          errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
                         ),
-                      ),
-                    ),
-                    // ===== Rating + Favourite =====
-                    Positioned(
-                      top: 12.h,
-                      left: 12.w,
-                      right: 12.w,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.45),
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.star_rounded, color: Colors.amber, size: 12.w),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  item['rating']!,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(0.82)],
+                              stops: const [0.45, 1.0],
                             ),
                           ),
-                          Consumer<TripsProvider>(
-                            builder: (context, provider, _) {
-                              final tripItem = TripItem(
-                                id: 'rec_$index',
-                                name: item['name']!,
-                                location: item['location']!,
-                                province: 'Rwanda',
-                                image: item['image']!,
-                                price: item['price']!,
-                                rating: item['rating']!,
-                              );
-                              final isFav = provider.favourites.any((f) => f.name == item['name']);
-                              final inTrip = provider.isInTrip(item['name']!);
-                              return GestureDetector(
-                                onTap: () {
-                                  if (!inTrip) provider.toggleFavourite(tripItem);
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 220),
-                                  width: 32.w,
-                                  height: 32.w,
-                                  decoration: BoxDecoration(
-                                    color: isFav
-                                        ? AppColors.primary
-                                        : Colors.black.withOpacity(0.45),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-                                    color: Colors.white,
-                                    size: 16.w,
-                                  ),
+                        ),
+                        Positioned(
+                          top: 12.h,
+                          left: 12.w,
+                          right: 12.w,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.35),
+                                  borderRadius: BorderRadius.circular(20.r),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    // ===== Name, Location & CTA =====
-                    Positioned(
-                      bottom: 14.h,
-                      left: 14.w,
-                      right: 14.w,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  item['name']!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 3.h),
-                                Row(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.location_on, size: 11.w, color: Colors.white70),
+                                    Icon(Icons.star_rounded, color: Colors.amber, size: 12.w),
                                     SizedBox(width: 3.w),
-                                    Expanded(
-                                      child: Text(
-                                        item['location']!,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                                    Text(
+                                      item['rating']!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              GestureDetector(
+                                onTap: () => provider.toggleFavourite(tripItem),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: EdgeInsets.all(6.w),
+                                  decoration: BoxDecoration(
+                                    color: liked
+                                        ? AppColors.error.withOpacity(0.85)
+                                        : Colors.black.withOpacity(0.35),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    liked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                                    color: Colors.white,
+                                    size: 14.w,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 8.w),
-                          Container(
-                            width: 34.w,
-                            height: 34.w,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 16.w,
-                            ),
+                        ),
+                        Positioned(
+                          bottom: 14.h,
+                          left: 14.w,
+                          right: 14.w,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item['name']!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp,
+                                ),
+                              ),
+                              SizedBox(height: 3.h),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, size: 11.w, color: Colors.white70),
+                                  SizedBox(width: 3.w),
+                                  Expanded(
+                                    child: Text(
+                                      item['location']!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
@@ -360,67 +388,212 @@ class _RecommendedList extends StatelessWidget {
   }
 }
 
-const _kFeaturedStays = [
-  {'name': 'Luxury Green Villa',  'location': 'Musanze, Rwanda', 'price': '\$120.00', 'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop'},
-  {'name': 'Kigali Serena Hotel', 'location': 'Kigali CBD',      'price': '\$180.00', 'image': 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=400&fit=crop'},
-  {'name': 'Lake Kivu Serena',    'location': 'Rubavu, Rwanda',  'price': '\$150.00', 'image': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=400&fit=crop'},
-];
-
-class _FeaturedStaySection extends StatelessWidget {
-  const _FeaturedStaySection();
+// ── Featured Stay ─────────────────────────────────────────────────────────────
+class _FeaturedStaySection extends StatefulWidget {
+  final String categoryFilter;
+  const _FeaturedStaySection({this.categoryFilter = 'all'});
 
   @override
+  State<_FeaturedStaySection> createState() => _FeaturedStaySectionState();
+}
+
+class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
+  @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _kFeaturedStays.length,
-      itemBuilder: (context, index) {
-        final stay = _kFeaturedStays[index];
-        return Container(
-          margin: EdgeInsets.only(bottom: 12.h),
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    final hide = widget.categoryFilter != 'all' &&
+        widget.categoryFilter != 'accommodation' &&
+        widget.categoryFilter != 'travel_toolkit';
+    if (hide) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'No stays in this category',
+            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
           ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: CachedNetworkImage(
-                  imageUrl: stay['image']!,
-                  width: 80.w,
-                  height: 80.w,
-                  fit: BoxFit.cover,
+        ),
+      );
+    }
+    return Consumer<TripsProvider>(
+      builder: (context, provider, _) {
+        return ListView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: AppConstants.featuredStays.length,
+          itemBuilder: (context, index) {
+            final stay = AppConstants.featuredStays[index];
+            final tripItem = TripItem(
+              id: stay['id']!,
+              name: stay['name']!,
+              location: stay['location']!,
+              province: stay['province']!,
+              image: stay['image']!,
+              price: stay['price']!,
+              rating: stay['rating']!,
+              isAccommodation: true,
+            );
+            final liked = provider.isAccommodationLiked(tripItem.id);
+            final booked = provider.isAccommodationSelected(tripItem.id);
+
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                SmoothPageRoute(
+                  page: AccommodationDetails(
+                    title: stay['name']!,
+                    location: stay['location']!,
+                    images: [stay['image']!],
+                    price: stay['price'],
+                    rating: stay['rating'],
+                  ),
                 ),
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stay['name']!,
-                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    SizedBox(height: 4.h),
-                    Text(stay['location']!, style: TextStyle(color: AppColors.textSecondary, fontSize: 11.sp)),
-                    SizedBox(height: 8.h),
-                    Text(stay['price']!, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: CachedNetworkImage(
+                        imageUrl: stay['image']!,
+                        width: 80.w,
+                        height: 80.w,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                        errorWidget: (_, __, ___) => Container(color: AppColors.shimmerBase),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            stay['name']!,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textHeading,
+                            ),
+                          ),
+                          SizedBox(height: 3.h),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, size: 11.w, color: AppColors.textSecondary),
+                              SizedBox(width: 2.w),
+                              Text(
+                                stay['location']!,
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 11.sp),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Row(
+                            children: [
+                              Icon(Icons.star_rounded, color: Colors.amber, size: 13.w),
+                              SizedBox(width: 3.w),
+                              Text(
+                                stay['rating']!,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textHeading,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '(${stay['reviews']} reviews)',
+                                style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Text(
+                            stay['price']!,
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () => provider.toggleLikeAccommodation(tripItem),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.all(6.w),
+                            decoration: BoxDecoration(
+                              color: liked
+                                  ? AppColors.errorSoft
+                                  : AppColors.surfaceBorder.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              liked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                              size: 16.w,
+                              color: liked ? AppColors.error : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        GestureDetector(
+                          onTap: () async {
+                            if (booked) {
+                              provider.cancelAccommodationBooking(tripItem.province);
+                            } else {
+                              final booking = await BookingFormSheet.show(context, tripItem);
+                              if (booking != null) {
+                                provider.confirmAccommodationBooking(booking);
+                                if (context.mounted) {
+                                  showTopSnackbar(context, '${stay['name']!} booked!',
+                                      icon: Icons.hotel_rounded);
+                                }
+                              }
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+                            decoration: BoxDecoration(
+                              color: booked ? AppColors.errorSoft : AppColors.primary,
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Text(
+                              booked ? 'Cancel' : '+ Book',
+                              style: TextStyle(
+                                color: booked ? AppColors.error : Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

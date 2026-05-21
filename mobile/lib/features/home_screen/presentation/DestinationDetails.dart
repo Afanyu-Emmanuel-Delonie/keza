@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/animated_card_item.dart';
+import '../../../core/utils/trip_snackbar.dart';
+import '../../trips/providers/trips_provider.dart';
 
 class DestinationDetails extends StatefulWidget {
   final String title;
@@ -67,8 +70,40 @@ class _DestinationDetailsState extends State<DestinationDetails> {
     );
   }
 
+  TripItem _asTripItem() => TripItem(
+        id: 'dest_${widget.title.replaceAll(' ', '_').toLowerCase()}',
+        name: widget.title,
+        location: widget.location,
+        province: _inferProvince(widget.location),
+        image: widget.images.isNotEmpty ? widget.images.first : '',
+        price: widget.price ?? 'Free',
+        rating: widget.rating ?? '4.5',
+        isAccommodation: false,
+      );
+
+  static String _inferProvince(String location) {
+    final l = location.toLowerCase();
+    if (l.contains('kigali')) return 'Kigali City';
+    if (l.contains('musanze') || l.contains('north') || l.contains('burera') || l.contains('ruhondo')) return 'Northern Province';
+    if (l.contains('rubavu') || l.contains('west') || l.contains('kivu')) return 'Western Province';
+    if (l.contains('kayonza') || l.contains('east') || l.contains('akagera')) return 'Eastern Province';
+    if (l.contains('huye') || l.contains('south') || l.contains('nyanza')) return 'Southern Province';
+    return 'Kigali City';
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Consumer<TripsProvider>(
+      builder: (context, provider, _) {
+        final item = _asTripItem();
+        final isAdded = provider.isAdded(item.id);
+        final isLiked = provider.isFavourite(item.id);
+        return _buildScaffold(context, provider, item, isAdded, isLiked);
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, TripsProvider provider, TripItem item, bool isAdded, bool isLiked) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -85,6 +120,8 @@ class _DestinationDetailsState extends State<DestinationDetails> {
                 pageController: _pageController,
                 onImageTap: _openFullScreenImage,
                 onPageChanged: (i) => setState(() => _currentCarouselPage = i),
+                isLiked: isLiked,
+                onLike: () => provider.toggleFavourite(item),
               ),
               // ========== Content ================================
               SliverToBoxAdapter(
@@ -248,7 +285,7 @@ class _DestinationDetailsState extends State<DestinationDetails> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Price',
+                        'Entry Price',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 12.sp),
                       ),
                       Text(
@@ -261,29 +298,39 @@ class _DestinationDetailsState extends State<DestinationDetails> {
                       ),
                     ],
                   ),
-                  SizedBox(width: 30.w),
+                  SizedBox(width: 20.w),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {},
-                      child: Container(
+                      onTap: () {
+                        provider.toggleAddTrip(item);
+                        if (!isAdded) {
+                          showAddedToTripSnackbar(context, widget.title);
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: isAdded ? AppColors.primarySoft : AppColors.primary,
                           borderRadius: BorderRadius.circular(12.r),
+                          border: isAdded ? Border.all(color: AppColors.primary, width: 1.5) : null,
                         ),
                         alignment: Alignment.center,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_rounded, color: Colors.white, size: 18.w),
+                            Icon(
+                              isAdded ? Icons.check_rounded : Icons.add_rounded,
+                              color: isAdded ? AppColors.primary : Colors.white,
+                              size: 18.w,
+                            ),
                             SizedBox(width: 6.w),
                             Text(
-                              'Add Trip',
+                              isAdded ? 'Added to Trip' : 'Add to Trip',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: isAdded ? AppColors.primary : Colors.white,
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 0.2,
                               ),
                             ),
                           ],
@@ -302,9 +349,6 @@ class _DestinationDetailsState extends State<DestinationDetails> {
 }
 
 // ========== Shared Details Sliver App Bar ================================
-// Used by both DestinationDetails and AccommodationDetails.
-// Back button + favourite + share match KezaAppBar's rounded-square style
-// but rendered white-on-dark for the hero image context.
 class _DetailsSliverAppBar extends StatelessWidget {
   final String title;
   final bool titleVisible;
@@ -313,6 +357,8 @@ class _DetailsSliverAppBar extends StatelessWidget {
   final PageController pageController;
   final Function(int) onImageTap;
   final ValueChanged<int> onPageChanged;
+  final bool isLiked;
+  final VoidCallback onLike;
 
   const _DetailsSliverAppBar({
     required this.title,
@@ -322,6 +368,8 @@ class _DetailsSliverAppBar extends StatelessWidget {
     required this.pageController,
     required this.onImageTap,
     required this.onPageChanged,
+    this.isLiked = false,
+    required this.onLike,
   });
 
   @override
@@ -373,9 +421,10 @@ class _DetailsSliverAppBar extends StatelessWidget {
       // ========== Actions — favourite + share ================================
       actions: [
         _DetailsAction(
-          icon: Icons.favorite_outline_rounded,
+          icon: isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
           collapsed: titleVisible,
-          onTap: () {},
+          onTap: onLike,
+          isActive: isLiked,
         ),
         _DetailsAction(
           icon: Icons.share_outlined,
@@ -465,12 +514,14 @@ class _DetailsAction extends StatelessWidget {
   final bool collapsed;
   final VoidCallback onTap;
   final bool isLast;
+  final bool isActive;
 
   const _DetailsAction({
     required this.icon,
     required this.collapsed,
     required this.onTap,
     this.isLast = false,
+    this.isActive = false,
   });
 
   @override
@@ -487,15 +538,17 @@ class _DetailsAction extends StatelessWidget {
           right: isLast ? 16.w : 0,
         ),
         decoration: BoxDecoration(
-          color: collapsed
-              ? AppColors.surfaceBorder.withOpacity(0.6)
-              : Colors.black.withOpacity(0.35),
+          color: isActive
+              ? AppColors.error.withOpacity(0.85)
+              : collapsed
+                  ? AppColors.surfaceBorder.withOpacity(0.6)
+                  : Colors.black.withOpacity(0.35),
           borderRadius: BorderRadius.circular(10.r),
         ),
         child: Icon(
           icon,
           size: 17.w,
-          color: collapsed ? AppColors.textHeading : Colors.white,
+          color: isActive ? Colors.white : collapsed ? AppColors.textHeading : Colors.white,
         ),
       ),
     );

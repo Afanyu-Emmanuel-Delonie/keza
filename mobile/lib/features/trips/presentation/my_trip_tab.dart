@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/trip_snackbar.dart';
 import '../../../core/widgets/animated_card_item.dart';
 import '../providers/trips_provider.dart';
 import '../../home_screen/presentation/DestinationDetails.dart';
@@ -52,7 +53,6 @@ class _MyTripTabState extends State<MyTripTab>
     _rightSlide = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _pillCtrl, curve: Curves.easeOutBack),
     );
-    // Label fades in after avatars and bag have arrived
     _labelFade = CurvedAnimation(parent: _pillCtrl, curve: const Interval(0.4, 1.0, curve: Curves.easeIn));
   }
 
@@ -72,11 +72,42 @@ class _MyTripTabState extends State<MyTripTab>
       _barCtrl.reverse();
       _pillCtrl.reverse();
     } else if (newCount > _prevCount) {
-      // Bounce pill to show new avatar popping in
       HapticFeedback.lightImpact();
       _pillCtrl.forward(from: 0.65);
     }
     _prevCount = newCount;
+  }
+
+  void _bookWithAI(BuildContext context, List<TripItem> selected) {
+    final provider = context.read<TripsProvider>();
+    final now = DateTime.now();
+    final provinces = selected.map((t) => t.province).toSet();
+    for (final province in provinces) {
+      final item = TripItem(
+        id: 'ai_accom_${province.replaceAll(' ', '_').toLowerCase()}',
+        name: 'AI Selected Stay · $province',
+        location: province,
+        province: province,
+        image: selected.firstWhere((t) => t.province == province).image,
+        price: '\$120/night',
+        rating: '4.7',
+        isAccommodation: true,
+      );
+      provider.confirmAccommodationBooking(AccommodationBooking(
+        item: item,
+        checkIn: now.add(const Duration(days: 7)),
+        checkOut: now.add(const Duration(days: 10)),
+        guests: 2,
+        roomType: 'Deluxe',
+        notes: 'AI suggested booking',
+      ));
+    }
+    showTopSnackbar(
+      context,
+      'AI booked stays for ${provinces.length} destination${provinces.length > 1 ? 's' : ''}!',
+      icon: Icons.auto_awesome_rounded,
+    );
+    context.push('/plan');
   }
 
   @override
@@ -108,42 +139,58 @@ class _MyTripTabState extends State<MyTripTab>
               padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 120.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(provinces.length, (pi) {
-                  final province = provinces[pi];
-                  final trips    = grouped[province]!;
-                  return AnimatedCardItem(
-                    index: pi,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ProvinceHeader(province: province),
-                        SizedBox(height: 10.h),
-                        ...trips.map((trip) => _TripLineItem(
-                              trip: trip,
-                              onTap: () => Navigator.push(
-                                context,
-                                SmoothPageRoute(
-                                  page: DestinationDetails(
-                                    title: trip.name,
-                                    location: trip.location,
-                                    images: [trip.image],
-                                    price: trip.price,
-                                    rating: trip.rating,
+                children: [
+                  // ── AI banner ──
+                  _AiBanner(
+                    hasSelected: count > 0,
+                    selectedCount: count,
+                    totalCount: provider.addedTrips.length,
+                    onAskAI: () => count > 0
+                        ? _bookWithAI(context, selected)
+                        : showTopSnackbar(context,
+                            'Select destinations first, then tap Ask AI',
+                            icon: Icons.info_outline_rounded),
+                  ),
+                  SizedBox(height: 20.h),
+
+                  // ── Destination list grouped by province ──
+                  ...List.generate(provinces.length, (pi) {
+                    final province = provinces[pi];
+                    final trips    = grouped[province]!;
+                    return AnimatedCardItem(
+                      index: pi,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _ProvinceHeader(province: province),
+                          SizedBox(height: 10.h),
+                          ...trips.map((trip) => _TripLineItem(
+                                trip: trip,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  SmoothPageRoute(
+                                    page: DestinationDetails(
+                                      title: trip.name,
+                                      location: trip.location,
+                                      images: [trip.image],
+                                      price: trip.price,
+                                      rating: trip.rating,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )),
-                        SizedBox(height: 20.h),
-                        const Divider(color: AppColors.surfaceBorder, height: 1),
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  );
-                }),
+                              )),
+                          SizedBox(height: 20.h),
+                          const Divider(color: AppColors.surfaceBorder, height: 1),
+                          SizedBox(height: 20.h),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
 
-            // ===== Floating checkout pill =====
+            // ── Floating checkout pill ──
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: AnimatedBuilder(
@@ -169,6 +216,101 @@ class _MyTripTabState extends State<MyTripTab>
   }
 }
 
+// ── AI banner ─────────────────────────────────────────────────────────────────
+class _AiBanner extends StatelessWidget {
+  final bool hasSelected;
+  final int selectedCount;
+  final int totalCount;
+  final VoidCallback onAskAI;
+
+  const _AiBanner({
+    required this.hasSelected,
+    required this.selectedCount,
+    required this.totalCount,
+    required this.onAskAI,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        gradient: AppColors.aiGradient,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 20.w),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasSelected
+                      ? '$selectedCount of $totalCount selected'
+                      : 'Not sure where to go?',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  hasSelected
+                      ? 'Let AI book the best stays for your selected destinations'
+                      : 'Tap a destination to select it, or ask AI to help plan your trip',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Colors.white.withOpacity(0.85),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10.w),
+          GestureDetector(
+            onTap: onAskAI,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Text(
+                'Ask AI',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDarker,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Checkout bar ──────────────────────────────────────────────────────────────
 class _CheckoutBar extends StatelessWidget {
   final List<TripItem> selectedTrips;
   final Animation<double> leftSlide;
@@ -221,8 +363,7 @@ class _CheckoutBar extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // ===== Destination avatars slide in from left =====
+              // Destination avatars slide in from left
               Positioned(
                 left: 8.w, top: 0, bottom: 0,
                 child: AnimatedBuilder(
@@ -233,8 +374,7 @@ class _CheckoutBar extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // ===== Bag with count badge slides in from right =====
+              // Bag with count badge slides in from right
               Positioned(
                 right: 8.w, top: 0, bottom: 0,
                 child: AnimatedBuilder(
@@ -253,7 +393,7 @@ class _CheckoutBar extends StatelessWidget {
   }
 }
 
-// ===== Stacked avatars — max 3 visible, overflow shows +N =====
+// ── Stacked avatars ───────────────────────────────────────────────────────────
 class _StackedAvatars extends StatelessWidget {
   final List<TripItem> trips;
   const _StackedAvatars({required this.trips});
@@ -397,6 +537,7 @@ class _BagBadge extends StatelessWidget {
   }
 }
 
+// ── Trip line item ────────────────────────────────────────────────────────────
 class _TripLineItem extends StatelessWidget {
   final TripItem trip;
   final VoidCallback onTap;
@@ -430,7 +571,7 @@ class _TripLineItem extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // ===== Image morphs to circle on selection =====
+                // Image morphs to circle on selection
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutCubic,
@@ -517,6 +658,7 @@ class _TripLineItem extends StatelessWidget {
   }
 }
 
+// ── Province header ───────────────────────────────────────────────────────────
 class _ProvinceHeader extends StatelessWidget {
   final String province;
   const _ProvinceHeader({required this.province});
@@ -547,6 +689,7 @@ class _ProvinceHeader extends StatelessWidget {
   }
 }
 
+// ── Empty state ───────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String message;

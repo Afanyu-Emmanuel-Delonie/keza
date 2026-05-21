@@ -43,7 +43,6 @@ class _TripsScreenState extends State<TripsScreen>
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────
             Container(
               color: AppColors.background,
               padding: EdgeInsets.only(
@@ -93,8 +92,6 @@ class _TripsScreenState extends State<TripsScreen>
                 ],
               ),
             ),
-
-            // ── Tab content ──────────────────────────────────────
             Expanded(
               child: TabBarView(
                 controller: _tabController,

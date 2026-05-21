@@ -1,246 +1,128 @@
 import 'package:flutter/material.dart';
 
-class TripItem {
-  final String id;
-  final String name;
-  final String location;
-  final String province;
-  final String image;
-  final String price;
-  final String rating;
-  final bool isAccommodation;
+import '../domain/entities/trip_entities.dart';
+import '../domain/repositories/trips_repository.dart';
 
-  const TripItem({
-    required this.id,
-    required this.name,
-    required this.location,
-    required this.province,
-    required this.image,
-    required this.price,
-    required this.rating,
-    this.isAccommodation = false,
-  });
-}
-
-class BookedTrip {
-  final String id;
-  final String name;
-  final String location;
-  final String image;
-  final String price;
-  final String bookingDate;
-  final String travelDate;
-  final BookingStatus status;
-
-  const BookedTrip({
-    required this.id,
-    required this.name,
-    required this.location,
-    required this.image,
-    required this.price,
-    required this.bookingDate,
-    required this.travelDate,
-    required this.status,
-  });
-}
-
-class TripGroup {
-  final String id;
-  final String name;
-  final int memberCount;
-
-  const TripGroup({required this.id, required this.name, required this.memberCount});
-}
-
-enum BookingStatus { pending, confirmed, completed }
+export '../domain/entities/trip_entities.dart';
 
 class TripsProvider extends ChangeNotifier {
-  // ── Favourites ──────────────────────────────────────────────
-  final List<TripItem> _favourites = [
-    const TripItem(
-      id: 'fav_2',
-      name: 'Luxury Green Villa',
-      location: 'Musanze, Rwanda',
-      province: 'Northern Province',
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop',
-      price: '\$120.00',
-      rating: '4.8',
-      isAccommodation: true,
-    ),
-    const TripItem(
-      id: 'fav_4',
-      name: 'Nyandungu Eco-Park',
-      location: 'Kigali',
-      province: 'Kigali City',
-      image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=400&fit=crop',
-      price: '\$10.00',
-      rating: '4.5',
-    ),
-  ];
+  final TripsRepository _repository;
 
-  // ── Added to trip ────────────────────────────────────────────
-  final List<TripItem> _addedTrips = [
-    const TripItem(
-      id: 'trip_1',
-      name: 'Volcanoes National Park',
-      location: 'Musanze',
-      province: 'Northern Province',
-      image: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=400&fit=crop',
-      price: '\$1500.00',
-      rating: '5.0',
-    ),
-    const TripItem(
-      id: 'trip_2',
-      name: 'Twin Lakes',
-      location: 'Burera & Ruhondo',
-      province: 'Northern Province',
-      image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=400&fit=crop',
-      price: '\$20.00',
-      rating: '4.7',
-    ),
-    const TripItem(
-      id: 'trip_3',
-      name: 'Akagera National Park',
-      location: 'Kayonza',
-      province: 'Eastern Province',
-      image: 'https://images.unsplash.com/photo-1547407139-3c921a66005c?q=80&w=400&fit=crop',
-      price: '\$50.00',
-      rating: '4.8',
-    ),
-  ];
+  TripsProvider({required TripsRepository repository}) : _repository = repository;
 
-  // ── Selected (accepted) trip IDs — empty by default ──
-  final Set<String> _selectedIds = {};
+  bool isAccommodationLiked(String id) => _repository.isAccommodationLiked(id);
+  bool isAccommodationSelected(String id) => _repository.isAccommodationSelected(id);
+  AccommodationBooking? bookingForProvince(String province) =>
+      _repository.bookingForProvince(province);
+  TripItem? selectedAccommodationForProvince(String province) =>
+      _repository.selectedAccommodationForProvince(province);
 
-  // ── Group booking ────────────────────────────────────────────
-  final List<TripGroup> _myGroups = [
-    const TripGroup(id: 'g1', name: 'Rwanda Adventure Crew', memberCount: 4),
-    const TripGroup(id: 'g2', name: 'Family Trip 2025', memberCount: 6),
-  ];
-  TripGroup? _activeGroup;
+  Map<String, AccommodationBooking> get allBookings => _repository.allBookings;
+  Map<String, GuideBooking> get allGuideBookings => _repository.allGuideBookings;
+  List<TripItem> get favourites => _repository.favourites;
+  List<TripItem> get addedTrips => _repository.addedTrips;
+  List<BookedTrip> get bookedTrips => _repository.bookedTrips;
+  List<TripGroup> get myGroups => _repository.myGroups;
+  TripGroup? get activeGroup => _repository.activeGroup;
+  Set<String> get selectedIds => _repository.selectedIds;
+  List<TripItem> get selectedTrips => _repository.selectedTrips;
+  Map<String, List<TourGuide>> get tourGuidesByProvince => _repository.tourGuidesByProvince;
+  TripPlanningProfile get tripProfile => _repository.tripProfile;
+  TripPlanType get selectedPlanType => _repository.selectedPlanType;
+  List<TripPlanOption> get planOptions => _repository.planOptions;
+  TripPlanOption? get selectedPlan => _repository.selectedPlan;
 
-  // ── Booked trips ─────────────────────────────────────────────
-  final List<BookedTrip> _bookedTrips = [
-    const BookedTrip(
-      id: 'book_1',
-      name: 'Kigali Genocide Memorial',
-      location: 'Gisozi, Kigali',
-      image: 'https://images.unsplash.com/photo-1579208575657-c595a05383b7?q=80&w=400&fit=crop',
-      price: 'Free',
-      bookingDate: 'Jan 10, 2025',
-      travelDate: 'Feb 14, 2025',
-      status: BookingStatus.confirmed,
-    ),
-    const BookedTrip(
-      id: 'book_2',
-      name: 'Lake Kivu Boat Tour',
-      location: 'Rubavu',
-      image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=400&fit=crop',
-      price: '\$35.00',
-      bookingDate: 'Jan 15, 2025',
-      travelDate: 'Mar 01, 2025',
-      status: BookingStatus.pending,
-    ),
-    const BookedTrip(
-      id: 'book_3',
-      name: 'Volcanoes Gorilla Trek',
-      location: 'Musanze',
-      image: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=400&fit=crop',
-      price: '\$1500.00',
-      bookingDate: 'Dec 20, 2024',
-      travelDate: 'Jan 05, 2025',
-      status: BookingStatus.completed,
-    ),
-  ];
+  bool isFavourite(String id) => _repository.isFavourite(id);
+  bool isAdded(String id) => _repository.isAdded(id);
+  bool isSelected(String id) => _repository.isSelected(id);
+  bool isInTrip(String name) => _repository.isInTrip(name);
 
-  // ── Getters ──────────────────────────────────────────────────
-  List<TripItem> get favourites => List.unmodifiable(_favourites);
-  List<TripItem> get addedTrips => List.unmodifiable(_addedTrips);
-  List<BookedTrip> get bookedTrips => List.unmodifiable(_bookedTrips);
-  List<TripGroup> get myGroups => List.unmodifiable(_myGroups);
-  TripGroup? get activeGroup => _activeGroup;
-  Set<String> get selectedIds => Set.unmodifiable(_selectedIds);
+  void toggleLikeAccommodation(TripItem item) {
+    _repository.toggleLikeAccommodation(item);
+    notifyListeners();
+  }
 
-  List<TripItem> get selectedTrips =>
-      _addedTrips.where((t) => _selectedIds.contains(t.id)).toList();
+  void confirmAccommodationBooking(AccommodationBooking booking) {
+    _repository.confirmAccommodationBooking(booking);
+    notifyListeners();
+  }
 
-  bool isFavourite(String id) => _favourites.any((f) => f.id == id);
-  bool isAdded(String id) => _addedTrips.any((t) => t.id == id);
-  bool isSelected(String id) => _selectedIds.contains(id);
-  bool isInTrip(String name) => _addedTrips.any((t) => t.name == name);
+  void cancelAccommodationBooking(String province) {
+    _repository.cancelAccommodationBooking(province);
+    notifyListeners();
+  }
+
+  void confirmGuideBooking(GuideBooking booking) {
+    _repository.confirmGuideBooking(booking);
+    notifyListeners();
+  }
+
+  void cancelGuideBooking(String province) {
+    _repository.cancelGuideBooking(province);
+    notifyListeners();
+  }
+
+  void markGuideConfirmed(String province) {
+    _repository.markGuideConfirmed(province);
+    notifyListeners();
+  }
+
+  void addBookedTrip(BookedTrip trip) {
+    _repository.addBookedTrip(trip);
+    notifyListeners();
+  }
+
+  void toggleSelectAccommodation(TripItem item) {
+    _repository.toggleSelectAccommodation(item);
+    notifyListeners();
+  }
 
   void toggleSelected(String id) {
-    if (_selectedIds.contains(id)) {
-      _selectedIds.remove(id);
-    } else {
-      _selectedIds.add(id);
-    }
+    _repository.toggleSelected(id);
     notifyListeners();
   }
 
   void toggleFavourite(TripItem item) {
-    // Cannot favourite something already in the trip
-    if (isInTrip(item.name)) return;
-    final idx = _favourites.indexWhere((f) => f.name == item.name);
-    if (idx >= 0) {
-      _favourites.removeAt(idx);
-    } else {
-      _favourites.add(item);
-    }
+    _repository.toggleFavourite(item);
     notifyListeners();
   }
 
   void toggleAddTrip(TripItem item) {
-    final idx = _addedTrips.indexWhere((t) => t.id == item.id);
-    if (idx >= 0) {
-      _addedTrips.removeAt(idx);
-      _selectedIds.remove(item.id);
-    } else {
-      _addedTrips.add(item);
-      _selectedIds.add(item.id);
-      // Auto-remove from favourites when added to trip
-      _favourites.removeWhere((f) => f.name == item.name);
-    }
+    _repository.toggleAddTrip(item);
     notifyListeners();
   }
 
   void removeFromTrip(String id) {
-    _addedTrips.removeWhere((t) => t.id == id);
-    _selectedIds.remove(id);
+    _repository.removeFromTrip(id);
     notifyListeners();
   }
 
   void setActiveGroup(TripGroup? group) {
-    _activeGroup = group;
+    _repository.setActiveGroup(group);
     notifyListeners();
   }
 
   void createGroup(String name) {
-    final group = TripGroup(
-      id: 'g${_myGroups.length + 1}',
-      name: name,
-      memberCount: 1,
-    );
-    _myGroups.add(group);
-    _activeGroup = group;
+    _repository.createGroup(name);
     notifyListeners();
   }
 
-  Map<String, List<TripItem>> get tripsByProvince {
-    final map = <String, List<TripItem>>{};
-    for (final trip in _addedTrips) {
-      map.putIfAbsent(trip.province, () => []).add(trip);
-    }
-    return map;
+  void updateTripProfile(TripPlanningProfile profile) {
+    _repository.updateTripProfile(profile);
+    notifyListeners();
   }
 
-  double get selectedTripCost {
-    return selectedTrips.fold(0.0, (sum, t) {
-      final raw = t.price.replaceAll('\$', '').replaceAll(',', '');
-      return sum + (double.tryParse(raw) ?? 0.0);
-    });
+  void selectPlanType(TripPlanType type) {
+    _repository.selectPlanType(type);
+    notifyListeners();
   }
 
-  // legacy — kept for booked tab
-  double get totalTripCost => selectedTripCost;
+  Map<String, List<TripItem>> get tripsByProvince => _repository.tripsByProvince;
+  double get selectedTripCost => _repository.selectedTripCost;
+  double get totalAccommodationCost => _repository.totalAccommodationCost;
+  double get totalGuideCost => _repository.totalGuideCost;
+  double get totalTripCost => _repository.totalTripCost;
+  double get serviceFee => _repository.serviceFee;
+  double get grandTotal => _repository.grandTotal;
+  TripReadiness get tripReadiness => _repository.tripReadiness;
 }

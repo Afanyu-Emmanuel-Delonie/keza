@@ -44,6 +44,15 @@ dependencies:
   url_launcher: ^6.2.5
 
   # ----------------------------
+  # AUTH
+  # ----------------------------
+  shared_preferences: ^2.2.3
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.0
+  flutter_facebook_auth: ^7.1.1
+  win32: ^5.9.0
+
+  # ----------------------------
   # UTILITIES
   # ----------------------------
   intl: ^0.19.0
@@ -81,3 +90,4 @@ flutter:
     - assets/places/
     - assets/general/
     - assets/categories/
+    - assets/icons/
