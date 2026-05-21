@@ -8,7 +8,7 @@ void showAddedToTripSnackbar(BuildContext context, String name) {
     SnackBar(
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.primaryDarker,
-      margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+      margin: EdgeInsets.fromLTRB(16.w, 60.h, 16.w, 0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       duration: const Duration(seconds: 2),
       content: Row(
@@ -24,6 +24,28 @@ void showAddedToTripSnackbar(BuildContext context, String name) {
               '$name added to your trip',
               style: TextStyle(color: Colors.white, fontSize: 13.sp),
             ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+void showTopSnackbar(BuildContext context, String message, {IconData icon = Icons.info_outline_rounded, Color color = AppColors.primaryDarker}) {
+  ScaffoldMessenger.of(context).clearSnackBars();
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: color,
+      margin: EdgeInsets.fromLTRB(16.w, 60.h, 16.w, 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      duration: const Duration(seconds: 2),
+      content: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 16.w),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(message, style: TextStyle(color: Colors.white, fontSize: 13.sp)),
           ),
         ],
       ),

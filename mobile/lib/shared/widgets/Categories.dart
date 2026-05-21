@@ -17,29 +17,41 @@ class CategoriesSection extends StatefulWidget {
 }
 
 class _CategoriesSectionState extends State<CategoriesSection> {
-  int _selected = 0;
+  // Always start with 'all' selected (index 0 if 'all' is first, else -1 means none)
+  String _selectedId = 'all';
 
   @override
   Widget build(BuildContext context) {
+    // Ensure 'All' is always the first chip
+    final cats = widget.categories;
+    final hasAll = cats.any((c) => c['id'] == 'all');
+    final items = hasAll
+        ? cats
+        : [
+            {'id': 'all', 'name': 'All', 'icon': Icons.apps_rounded},
+            ...cats,
+          ];
+
     return SizedBox(
       height: 36.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
-        itemCount: widget.categories.length,
+        itemCount: items.length,
         itemBuilder: (context, index) {
-          final category = widget.categories[index];
-          final isActive = _selected == index;
+          final category = items[index];
+          final id = category['id'] as String;
+          final isActive = _selectedId == id;
 
           return GestureDetector(
             onTap: () {
-              setState(() => _selected = index);
+              setState(() => _selectedId = id);
               widget.onCategorySelected?.call(category);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: EdgeInsets.only(right: 10.w),
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
               decoration: BoxDecoration(
                 color: isActive ? AppColors.primary : Colors.white,
                 borderRadius: BorderRadius.circular(30.r),
@@ -58,12 +70,12 @@ class _CategoriesSectionState extends State<CategoriesSection> {
                 children: [
                   Icon(
                     category['icon'] as IconData? ?? Icons.place,
-                    size: 16.w,
+                    size: 15.w,
                     color: isActive ? Colors.white : AppColors.primary,
                   ),
                   SizedBox(width: 6.w),
                   Text(
-                    category['name'] ?? '',
+                    category['name'] as String? ?? '',
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,

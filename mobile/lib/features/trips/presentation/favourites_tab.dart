@@ -24,11 +24,17 @@ class _FavouritesTabState extends State<FavouritesTab>
     super.build(context);
     return Consumer<TripsProvider>(
       builder: (context, provider, _) {
-        final trips = provider.favourites.where((f) => !f.isAccommodation).toList();
-        final stays = provider.favourites.where((f) => f.isAccommodation).toList();
+        final allFavs = provider.favourites;
 
-        if (provider.favourites.isEmpty) {
-          return _EmptyState(
+        final trips = allFavs
+            .where((f) => !f.isAccommodation && !provider.isAdded(f.id))
+            .toList();
+        final stays = allFavs
+            .where((f) => f.isAccommodation && !provider.isAdded(f.id))
+            .toList();
+
+        if (trips.isEmpty && stays.isEmpty) {
+          return const _EmptyState(
             icon: Icons.favorite_outline_rounded,
             message: 'No favourites yet',
             sub: 'Tap the heart on any destination or stay to save it here',
@@ -75,7 +81,8 @@ class _FavouritesTabState extends State<FavouritesTab>
                       index: i,
                       child: _FavTripCard(
                         item: stays[i],
-                        onUnfavourite: () => provider.toggleFavourite(stays[i]),
+                        onUnfavourite: () =>
+                            provider.toggleLikeAccommodation(stays[i]),
                       ),
                     ),
                   ),
@@ -152,7 +159,6 @@ class _FavTripCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // top row: rating + unfavourite
                 Positioned(
                   top: 12.h,
                   left: 12.w,
@@ -196,7 +202,6 @@ class _FavTripCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // bottom info + add to trip
                 Positioned(
                   bottom: 12.h,
                   left: 12.w,
@@ -242,7 +247,6 @@ class _FavTripCard extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: 10.h),
-                      // Add to Trip button
                       GestureDetector(
                         onTap: () {
                           if (!added) showAddedToTripSnackbar(context, item.name);

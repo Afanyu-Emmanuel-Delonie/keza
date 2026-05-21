@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,6 +38,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   // ── Rotating orbit dots ──
   late final AnimationController _orbit;
+
+  // ── Bouncing dots loader ──
+  late final List<AnimationController> _dotCtrls;
+  late final List<Animation<double>> _dotScales;
 
   @override
   void initState() {
@@ -94,6 +100,23 @@ class _SplashScreenState extends State<SplashScreen>
     _orbit = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))
       ..repeat();
 
+    // ── Bouncing dots — staggered, green-tinted to match splash bg ──
+    _dotCtrls = List.generate(3, (i) {
+      final ctrl = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 500),
+      );
+      Future.delayed(Duration(milliseconds: i * 160), () {
+        if (mounted) ctrl.repeat(reverse: true);
+      });
+      return ctrl;
+    });
+    _dotScales = _dotCtrls.map((c) =>
+      Tween<double>(begin: 0.45, end: 1.0).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      ),
+    ).toList();
+
     _seq.forward();
 
     // Trigger shimmer once wordmark is fully visible
@@ -102,7 +125,15 @@ class _SplashScreenState extends State<SplashScreen>
     });
 
     Future.delayed(const Duration(milliseconds: 3000), () {
-      if (mounted) context.go('/');
+      if (!mounted) return;
+      final auth = context.read<AuthProvider>();
+      if (!auth.hasSeenOnboarding) {
+        context.go('/onboarding');
+      } else if (!auth.isAuthenticated) {
+        context.go('/login');
+      } else {
+        context.go('/');
+      }
     });
   }
 
@@ -112,6 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
     _pulse.dispose();
     _shimmer.dispose();
     _orbit.dispose();
+    for (final c in _dotCtrls) c.dispose();
     super.dispose();
   }
 
@@ -252,6 +284,39 @@ class _SplashScreenState extends State<SplashScreen>
                           fontWeight: FontWeight.w400,
                         ),
                       ),
+                    ),
+                  ),
+
+                  SizedBox(height: 52.h),
+
+                  // ── Bouncing dots — green on dark bg ──
+                  FadeTransition(
+                    opacity: _subtitleFade,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(3, (i) {
+                        return AnimatedBuilder(
+                          animation: _dotScales[i],
+                          builder: (_, __) {
+                            final v = _dotScales[i].value;
+                            return Transform.scale(
+                              scale: v,
+                              child: Container(
+                                margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                width: 7.w,
+                                height: 7.w,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  // Bright primary green, opacity tracks scale
+                                  color: AppColors.primary.withOpacity(
+                                    0.35 + (v - 0.45) * 1.2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
                     ),
                   ),
                 ],

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../providers/trips_provider.dart';
 
 enum _PayMethod { card, mobileMoney, bankTransfer }
 
@@ -35,10 +38,52 @@ class _PaymentSheetState extends State<PaymentSheet> {
         total: widget.total,
         onPaid: () {
           Navigator.pop(ctx);
+          _confirmBooking();
           _showConfirmation();
         },
       ),
     );
+  }
+
+  void _confirmBooking() {
+    final provider = context.read<TripsProvider>();
+    final bookings = provider.allBookings;
+    final now = DateTime.now();
+    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final bookingDate = '${now.day} ${months[now.month - 1]} ${now.year}';
+
+    if (bookings.isNotEmpty) {
+      // One BookedTrip per accommodation booking
+      for (final b in bookings.values) {
+        final travelDate = '${b.checkIn.day} ${months[b.checkIn.month - 1]} ${b.checkIn.year}';
+        provider.addBookedTrip(BookedTrip(
+          id: 'booked_${b.item.id}_${now.millisecondsSinceEpoch}',
+          name: b.item.name,
+          location: b.item.location,
+          image: b.item.image,
+          price: '\$${b.totalCost.toStringAsFixed(0)}',
+          bookingDate: bookingDate,
+          travelDate: travelDate,
+          status: BookingStatus.confirmed,
+        ));
+      }
+    } else {
+      // Fallback: one trip entry for the whole plan
+      final trips = provider.addedTrips;
+      final image = trips.isNotEmpty
+          ? trips.first.image
+          : 'https://images.unsplash.com/photo-1523805009345-7448845a9e53?q=80&w=600&fit=crop';
+      provider.addBookedTrip(BookedTrip(
+        id: 'booked_plan_${now.millisecondsSinceEpoch}',
+        name: provider.selectedPlan?.name ?? 'Rwanda Trip',
+        location: trips.isNotEmpty ? trips.first.province : 'Rwanda',
+        image: image,
+        price: '\$${widget.total.toStringAsFixed(0)}',
+        bookingDate: bookingDate,
+        travelDate: bookingDate,
+        status: BookingStatus.confirmed,
+      ));
+    }
   }
 
   void _showConfirmation() {
@@ -46,7 +91,11 @@ class _PaymentSheetState extends State<PaymentSheet> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _ConfirmationDialog(
-        onDone: () => Navigator.pop(ctx),
+        onDone: () {
+          Navigator.pop(ctx);
+          // Navigate to Trips screen (index 2 in bottom nav)
+          context.go('/');
+        },
       ),
     );
   }
@@ -404,7 +453,7 @@ class _ConfirmationDialog extends StatelessWidget {
                     color: AppColors.textHeading)),
             SizedBox(height: 8.h),
             Text(
-              'Your trip to Rwanda is booked.\nA confirmation will be sent to your email.',
+              'Your trip to Rwanda is booked.\nCheck the Trips tab to view your bookings.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 13.sp, color: AppColors.textSecondary, height: 1.5),

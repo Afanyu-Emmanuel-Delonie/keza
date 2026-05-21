@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/trips_provider.dart';
 import 'booking_form_sheet.dart';
+import '../../../core/utils/trip_snackbar.dart';
 import 'itinerary_summary_sheet.dart';
 import 'payment_sheet.dart';
 
@@ -121,6 +122,37 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (picked != null) setState(() => _arrivalDate = picked);
   }
 
+  void _bookWithAI(BuildContext context, List<String> allProvinces) {
+    final provider = context.read<TripsProvider>();
+    if (_arrivalDate == null) return;
+    for (final province in allProvinces) {
+      final options = _kAccommodations[province] ?? [];
+      final available = options.where((o) => o['available'] != 'false').toList();
+      if (available.isEmpty) continue;
+      final opt = available.first;
+      final item = TripItem(
+        id: '${province}_${opt['name']}',
+        name: opt['name']!,
+        location: opt['location']!,
+        province: province,
+        image: opt['image']!,
+        price: opt['price']!,
+        rating: opt['rating']!,
+        isAccommodation: true,
+      );
+      provider.confirmAccommodationBooking(AccommodationBooking(
+        item: item,
+        checkIn: _arrivalDate!,
+        checkOut: _arrivalDate!.add(const Duration(days: 3)),
+        guests: 2,
+        roomType: 'Deluxe',
+        notes: 'AI suggested booking',
+      ));
+    }
+    showTopSnackbar(context, 'AI booked the best available stays!',
+        icon: Icons.auto_awesome_rounded);
+  }
+
   void _openItinerary(BuildContext context) {
     final provider = context.read<TripsProvider>();
     ItinerarySummarySheet.show(
@@ -141,6 +173,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<TripsProvider>();
     final trips = provider.addedTrips;
+    final selectedPlan = provider.selectedPlan;
+    final profile = provider.tripProfile;
     final top = MediaQuery.of(context).padding.top;
     final hasBookings = provider.allBookings.isNotEmpty;
 
@@ -188,6 +222,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Places to Visit card ──
+                    _TripPlanOverviewCard(
+                      selectedPlan: selectedPlan,
+                      people: profile.people,
+                      days: profile.days,
+                      budget: profile.budget,
+                    ),
+                    SizedBox(height: 20.h),
+
                     _PlacesCard(trips: trips),
                     SizedBox(height: 20.h),
 
@@ -196,7 +238,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
                     // ── Accommodations (shown after date is picked) ──
                     if (_arrivalDate != null) ...[
-                      SizedBox(height: 28.h),
+                      SizedBox(height: 16.h),
+
+                      // ── Book with AI banner ──
+                      GestureDetector(
+                        onTap: () => _bookWithAI(context, allProvinces),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.aiGradient,
+                            borderRadius: BorderRadius.circular(14.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryDarker.withOpacity(0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 18.w),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Book with AI',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Let Keza AI pick the best available stays for you',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.8),
+                                        fontSize: 11.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14.w),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
 
                       // ── Confirmed stays section ──
                       _ConfirmedStaysSection(
@@ -334,6 +426,8 @@ class _PlacesCardState extends State<_PlacesCard>
     for (final k in map.keys) {
       if (k != 'Kigali City') sorted[k] = map[k]!;
     }
+    // Always include Kigali City even if no trips there
+    if (!sorted.containsKey('Kigali City')) sorted['Kigali City'] = [];
     return sorted;
   }
 
@@ -343,7 +437,10 @@ class _PlacesCardState extends State<_PlacesCard>
     final totalCount = widget.trips.length;
     final allImages = widget.trips.map((t) => t.image).toList();
 
-    return Container(
+    return Consumer<TripsProvider>(
+      builder: (context, provider, _) {
+        final favouritedDests = provider.favourites.where((f) => !f.isAccommodation).toList();
+        return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
@@ -476,51 +573,119 @@ class _PlacesCardState extends State<_PlacesCard>
                               ],
                             ),
                             SizedBox(height: 8.h),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: items.length,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 8.w,
-                                mainAxisSpacing: 8.w,
-                                childAspectRatio: 1,
-                              ),
-                              itemBuilder: (_, i) {
-                                final t = items[i];
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      CachedNetworkImage(
-                                        imageUrl: t.image,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => Container(color: AppColors.shimmerBase),
-                                        errorWidget: (_, __, ___) => Container(color: AppColors.shimmerBase),
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
-                                            stops: const [0.5, 1.0],
+                            if (items.isEmpty && !isKigali)
+                              Text('No destinations added',
+                                  style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary))
+                            else if (items.isNotEmpty)
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: items.length,
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 8.w,
+                                  mainAxisSpacing: 8.w,
+                                  childAspectRatio: 1,
+                                ),
+                                itemBuilder: (_, i) {
+                                  final t = items[i];
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        CachedNetworkImage(
+                                          imageUrl: t.image,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                                          errorWidget: (_, __, ___) => Container(color: AppColors.shimmerBase),
+                                        ),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                                              stops: const [0.5, 1.0],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      Positioned(
-                                        bottom: 6.h, left: 6.w, right: 6.w,
-                                        child: Text(t.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w600)),
-                                      ),
-                                    ],
+                                        Positioned(
+                                          bottom: 6.h, left: 6.w, right: 6.w,
+                                          child: Text(t.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w600)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            // ── Favourited destinations shown under Kigali ──
+                            if (isKigali && favouritedDests.isNotEmpty) ...[
+                              SizedBox(height: 12.h),
+                              Row(
+                                children: [
+                                  Icon(Icons.favorite_rounded, size: 12.w, color: AppColors.error),
+                                  SizedBox(width: 5.w),
+                                  Text(
+                                    'Saved Destinations',
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
-                                );
-                              },
-                            ),
+                                ],
+                              ),
+                              SizedBox(height: 8.h),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: favouritedDests.length,
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 8.w,
+                                  mainAxisSpacing: 8.w,
+                                  childAspectRatio: 1,
+                                ),
+                                itemBuilder: (_, i) {
+                                  final t = favouritedDests[i];
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        CachedNetworkImage(
+                                          imageUrl: t.image,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => Container(color: AppColors.shimmerBase),
+                                          errorWidget: (_, __, ___) => Container(color: AppColors.shimmerBase),
+                                        ),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                                              stops: const [0.5, 1.0],
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 6.h, left: 6.w, right: 6.w,
+                                          child: Text(t.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w600)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ],
                         );
                       }).toList(),
@@ -530,6 +695,8 @@ class _PlacesCardState extends State<_PlacesCard>
           ),
         ],
       ),
+        );
+      },
     );
   }
 }
@@ -1030,6 +1197,131 @@ class _AccommodationCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TripPlanOverviewCard extends StatelessWidget {
+  final TripPlanOption? selectedPlan;
+  final int people;
+  final int days;
+  final double budget;
+
+  const _TripPlanOverviewCard({
+    required this.selectedPlan,
+    required this.people,
+    required this.days,
+    required this.budget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = selectedPlan;
+    final estimate = plan?.estimatedCost ?? 0;
+    final delta = budget - estimate;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: AppColors.aiGradient,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDarker.withOpacity(0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(Icons.auto_awesome_rounded, size: 16.w, color: Colors.amber),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  plan?.name ?? 'Trip overview',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            plan?.description ??
+                'Choose a plan type in the trip builder to lock in the route, stay style, and total.',
+            style: TextStyle(
+              fontSize: 12.sp,
+              height: 1.45,
+              color: Colors.white.withOpacity(0.88),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
+            children: [
+              _OverviewPill(label: '$people people'),
+              _OverviewPill(label: '$days day${days == 1 ? '' : 's'}'),
+              _OverviewPill(label: '\$${budget.toStringAsFixed(0)} budget'),
+              _OverviewPill(label: plan != null ? '\$${estimate.toStringAsFixed(0)} estimate' : 'No plan selected'),
+            ],
+          ),
+          if (plan != null) ...[
+            SizedBox(height: 12.h),
+            Text(
+              delta >= 0
+                  ? '\$${delta.toStringAsFixed(0)} left after the selected plan'
+                  : '\$${delta.abs().toStringAsFixed(0)} over budget',
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withOpacity(0.92),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewPill extends StatelessWidget {
+  final String label;
+
+  const _OverviewPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: Colors.white.withOpacity(0.18)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
         ),
       ),
     );

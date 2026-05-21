@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -10,13 +9,34 @@ import '../../../shared/widgets/AI_Card.dart';
 import '../../../shared/widgets/Categories.dart';
 import '../../../shared/widgets/search.dart';
 import '../../../core/utils/trip_snackbar.dart';
+import '../../ai/presentation/trip_builder/ai_trip_builder_screen.dart';
+import '../../navigation/presentation/navigation_page.dart';
 import '../../notifications/presentation/notifications_page.dart';
 import '../../trips/providers/trips_provider.dart';
+import '../../trips/presentation/booking_form_sheet.dart';
 import 'AccommodationDetails.dart';
 import 'DestinationDetails.dart';
+import 'all_listings_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _selectedCategory = 'all';
+
+  void _goToAllDestinations() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AllDestinationsScreen()),
+      );
+
+  void _goToAllStays() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AllStaysScreen()),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +55,22 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 20.h),
               AnimatedCardItem(
                 index: 2,
-                child: AiCallToAction(onGetStartedPressed: () {}),
+                child: AiCallToAction(
+                  onGetStartedPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AiTripBuilderScreen()),
+                  ),
+                ),
               ),
               SizedBox(height: 24.h),
               AnimatedCardItem(
                 index: 3,
                 child: CategoriesSection(
-                  categories: AppConstants.categories,
-                  onCategorySelected: (category) {},
+                  categories: AppConstants.categories
+                      .where((c) => c['id'] != 'accommodation')
+                      .toList(),
+                  onCategorySelected: (cat) =>
+                      setState(() => _selectedCategory = cat['id'] as String),
                 ),
               ),
               SizedBox(height: 24.h),
@@ -50,19 +78,19 @@ class HomeScreen extends StatelessWidget {
                 title: 'Recommended',
                 index: 4,
                 subtitle: 'Explore More',
-                onTap: () {},
+                onTap: _goToAllDestinations,
               ),
               SizedBox(height: 12.h),
-              const _RecommendedList(),
+              _RecommendedList(categoryFilter: _selectedCategory),
               SizedBox(height: 24.h),
               _SectionHeader(
-                title: 'Featured Stay',
+                title: _selectedCategory == 'accommodation' ? 'Stays' : 'Featured Stay',
                 index: 5,
                 subtitle: 'See all',
-                onTap: () {},
+                onTap: _goToAllStays,
               ),
               SizedBox(height: 12.h),
-              const _FeaturedStaySection(),
+              _FeaturedStaySection(categoryFilter: _selectedCategory),
               SizedBox(height: 16.h),
             ],
           ),
@@ -72,7 +100,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ── Section header ──────────────────────────────────────────────────────────
+// ── Section header ────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String title;
   final int index;
@@ -116,14 +144,14 @@ class _SectionHeader extends StatelessWidget {
                 SizedBox(width: 4.w),
                 const Icon(Icons.arrow_forward_ios, size: 11, color: AppColors.primary),
               ]),
-            )
+            ),
         ],
       ),
     );
   }
 }
 
-// ── Home header with SVG logo ────────────────────────────────────────────────
+// ── Home header ───────────────────────────────────────────────────────────────
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader();
 
@@ -172,108 +200,126 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-// ── Recommended horizontal list ──────────────────────────────────────────────
-class _RecommendedList extends StatefulWidget {
-  const _RecommendedList();
+// ── Recommended horizontal list ───────────────────────────────────────────────
+class _RecommendedList extends StatelessWidget {
+  final String categoryFilter;
+  const _RecommendedList({this.categoryFilter = 'all'});
 
-  @override
-  State<_RecommendedList> createState() => _RecommendedListState();
-}
-
-class _RecommendedListState extends State<_RecommendedList> {
-  final Set<int> _liked = {};
+  List<Map<String, String>> _filtered() {
+    if (categoryFilter == 'all') return AppConstants.topDestinations;
+    final kw = AppConstants.categoryKeywords[categoryFilter] ?? [];
+    if (kw.isEmpty) return AppConstants.topDestinations;
+    return AppConstants.topDestinations.where((d) {
+      final text = '${d['name']!} ${d['location']!}'.toLowerCase();
+      return kw.any((k) => text.contains(k));
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final destinations = _filtered();
+    if (destinations.isEmpty) {
+      return SizedBox(
+        height: 80.h,
+        child: Center(
+          child: Text('No destinations in this category',
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary)),
+        ),
+      );
+    }
     return SizedBox(
       height: 240.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        padding: EdgeInsets.zero,
-        itemCount: AppConstants.topDestinations.length,
-        itemBuilder: (context, index) {
-          final item = AppConstants.topDestinations[index];
-          final liked = _liked.contains(index);
-          return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              SmoothPageRoute(
-                page: DestinationDetails(
-                  title: item['name']!,
-                  location: item['location']!,
-                  images: [item['image']!],
-                  price: item['price'],
-                  rating: item['rating'],
+      child: Consumer<TripsProvider>(
+        builder: (context, provider, _) {
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.zero,
+            itemCount: destinations.length,
+            itemBuilder: (context, index) {
+              final item = destinations[index];
+              final tripItem = TripItem(
+                id: 'dest_${item['name']!.replaceAll(' ', '_').toLowerCase()}',
+                name: item['name']!,
+                location: item['location']!,
+                province: AppConstants.inferProvince(item['location']!),
+                image: item['image']!,
+                price: item['price'] ?? 'Free',
+                rating: item['rating'] ?? '4.5',
+              );
+              final liked = provider.isFavourite(tripItem.id);
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    page: DestinationDetails(
+                      title: item['name']!,
+                      location: item['location']!,
+                      images: [item['image']!],
+                      price: item['price'],
+                      rating: item['rating'],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            child: Container(
-              margin: EdgeInsets.only(right: 15.w),
-              width: 220.w,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.r),
-                color: Colors.grey[200],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20.r),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: item['image']!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Colors.grey[200]),
-                      errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.82)],
-                          stops: const [0.45, 1.0],
+                child: Container(
+                  margin: EdgeInsets.only(right: 15.w),
+                  width: 220.w,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20.r),
+                    color: Colors.grey[200],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: item['image']!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(color: Colors.grey[200]),
+                          errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
                         ),
-                      ),
-                    ),
-                    // ── Top overlay: rating + favourite + arrow ──
-                    Positioned(
-                      top: 12.h,
-                      left: 12.w,
-                      right: 12.w,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Rating badge
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.35),
-                              borderRadius: BorderRadius.circular(20.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.star_rounded, color: Colors.amber, size: 12.w),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  item['rating']!,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(0.82)],
+                              stops: const [0.45, 1.0],
                             ),
                           ),
-                          // Favourite + arrow
-                          Row(
+                        ),
+                        Positioned(
+                          top: 12.h,
+                          left: 12.w,
+                          right: 12.w,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.35),
+                                  borderRadius: BorderRadius.circular(20.r),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.star_rounded, color: Colors.amber, size: 12.w),
+                                    SizedBox(width: 3.w),
+                                    Text(
+                                      item['rating']!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               GestureDetector(
-                                onTap: () => setState(() {
-                                  if (liked) _liked.remove(index); else _liked.add(index);
-                                }),
+                                onTap: () => provider.toggleFavourite(tripItem),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: EdgeInsets.all(6.w),
@@ -292,50 +338,49 @@ class _RecommendedListState extends State<_RecommendedList> {
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    // ── Bottom: name + location ──
-                    Positioned(
-                      bottom: 14.h,
-                      left: 14.w,
-                      right: 14.w,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item['name']!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15.sp,
-                            ),
-                          ),
-                          SizedBox(height: 3.h),
-                          Row(
+                        ),
+                        Positioned(
+                          bottom: 14.h,
+                          left: 14.w,
+                          right: 14.w,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.location_on, size: 11.w, color: Colors.white70),
-                              SizedBox(width: 3.w),
-                              Expanded(
-                                child: Text(
-                                  item['location']!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                              Text(
+                                item['name']!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp,
                                 ),
+                              ),
+                              SizedBox(height: 3.h),
+                              Row(
+                                children: [
+                                  Icon(Icons.location_on, size: 11.w, color: Colors.white70),
+                                  SizedBox(width: 3.w),
+                                  Expanded(
+                                    child: Text(
+                                      item['location']!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
@@ -343,39 +388,10 @@ class _RecommendedListState extends State<_RecommendedList> {
   }
 }
 
-// ── Featured Stay — Kigali stays with like, rating, add-to-trip ──────────────
-const _kKigaliStays = [
-  {
-    'id': 'stay_kigali_0',
-    'name': 'Kigali Serena Hotel',
-    'location': 'Kiyovu, Kigali',
-    'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop',
-    'price': '\$180.00',
-    'rating': '4.9',
-    'reviews': '312',
-  },
-  {
-    'id': 'stay_kigali_1',
-    'name': 'Radisson Blu Kigali',
-    'location': 'Gasabo, Kigali',
-    'image': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=400&fit=crop',
-    'price': '\$150.00',
-    'rating': '4.7',
-    'reviews': '198',
-  },
-  {
-    'id': 'stay_kigali_2',
-    'name': 'Nyandungu Eco Lodge',
-    'location': 'Nyarugunga, Kigali',
-    'image': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=400&fit=crop',
-    'price': '\$95.00',
-    'rating': '4.5',
-    'reviews': '87',
-  },
-];
-
+// ── Featured Stay ─────────────────────────────────────────────────────────────
 class _FeaturedStaySection extends StatefulWidget {
-  const _FeaturedStaySection();
+  final String categoryFilter;
+  const _FeaturedStaySection({this.categoryFilter = 'all'});
 
   @override
   State<_FeaturedStaySection> createState() => _FeaturedStaySectionState();
@@ -384,27 +400,41 @@ class _FeaturedStaySection extends StatefulWidget {
 class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
   @override
   Widget build(BuildContext context) {
+    final hide = widget.categoryFilter != 'all' &&
+        widget.categoryFilter != 'accommodation' &&
+        widget.categoryFilter != 'travel_toolkit';
+    if (hide) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'No stays in this category',
+            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
     return Consumer<TripsProvider>(
       builder: (context, provider, _) {
         return ListView.builder(
           shrinkWrap: true,
           padding: EdgeInsets.zero,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _kKigaliStays.length,
+          itemCount: AppConstants.featuredStays.length,
           itemBuilder: (context, index) {
-            final stay = _kKigaliStays[index];
+            final stay = AppConstants.featuredStays[index];
             final tripItem = TripItem(
               id: stay['id']!,
               name: stay['name']!,
               location: stay['location']!,
-              province: 'Kigali City',
+              province: stay['province']!,
               image: stay['image']!,
               price: stay['price']!,
               rating: stay['rating']!,
               isAccommodation: true,
             );
             final liked = provider.isAccommodationLiked(tripItem.id);
-            final added = provider.isAccommodationSelected(tripItem.id);
+            final booked = provider.isAccommodationSelected(tripItem.id);
 
             return GestureDetector(
               onTap: () => Navigator.push(
@@ -435,7 +465,6 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
                 ),
                 child: Row(
                   children: [
-                    // Image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12.r),
                       child: CachedNetworkImage(
@@ -448,7 +477,6 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    // Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,7 +533,6 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
                       ),
                     ),
                     SizedBox(width: 8.w),
-                    // Actions
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -515,7 +542,9 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
                             duration: const Duration(milliseconds: 200),
                             padding: EdgeInsets.all(6.w),
                             decoration: BoxDecoration(
-                              color: liked ? AppColors.errorSoft : AppColors.surfaceBorder.withOpacity(0.5),
+                              color: liked
+                                  ? AppColors.errorSoft
+                                  : AppColors.surfaceBorder.withOpacity(0.5),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -527,21 +556,31 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
                         ),
                         SizedBox(height: 10.h),
                         GestureDetector(
-                          onTap: () {
-                            provider.toggleSelectAccommodation(tripItem);
-                            if (!added) showAddedToTripSnackbar(context, stay['name']!);
+                          onTap: () async {
+                            if (booked) {
+                              provider.cancelAccommodationBooking(tripItem.province);
+                            } else {
+                              final booking = await BookingFormSheet.show(context, tripItem);
+                              if (booking != null) {
+                                provider.confirmAccommodationBooking(booking);
+                                if (context.mounted) {
+                                  showTopSnackbar(context, '${stay['name']!} booked!',
+                                      icon: Icons.hotel_rounded);
+                                }
+                              }
+                            }
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
                             decoration: BoxDecoration(
-                              color: added ? AppColors.primarySoft : AppColors.primary,
+                              color: booked ? AppColors.errorSoft : AppColors.primary,
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Text(
-                              added ? 'Added' : '+ Trip',
+                              booked ? 'Cancel' : '+ Book',
                               style: TextStyle(
-                                color: added ? AppColors.primary : Colors.white,
+                                color: booked ? AppColors.error : Colors.white,
                                 fontSize: 10.sp,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -560,5 +599,3 @@ class _FeaturedStaySectionState extends State<_FeaturedStaySection> {
     );
   }
 }
-
-
