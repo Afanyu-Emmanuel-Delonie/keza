@@ -84,7 +84,7 @@ class _TravelStylePageState extends State<TravelStylePage> {
                       width: 44.w,
                       height: 44.w,
                       decoration: BoxDecoration(
-                        color: active ? AppColors.primary : AppColors.background,
+                        color: active ? AppColors.primary : AppColors.surfaceRaised,
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(s['icon'] as IconData,

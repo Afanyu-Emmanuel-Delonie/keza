@@ -9,15 +9,16 @@ enum _PayMethod { card, mobileMoney, bankTransfer }
 
 class PaymentSheet extends StatefulWidget {
   final double total;
+  final PaymentMethod paymentMethod;
 
-  const PaymentSheet({super.key, required this.total});
+  const PaymentSheet({super.key, required this.total, this.paymentMethod = PaymentMethod.payNow});
 
-  static Future<bool?> show(BuildContext context, {required double total}) {
+  static Future<bool?> show(BuildContext context, {required double total, PaymentMethod paymentMethod = PaymentMethod.payNow}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => PaymentSheet(total: total),
+      builder: (_) => PaymentSheet(total: total, paymentMethod: paymentMethod),
     );
   }
 
@@ -29,6 +30,13 @@ class _PaymentSheetState extends State<PaymentSheet> {
   _PayMethod _selected = _PayMethod.card;
 
   void _checkout() {
+    // Pay on Arrival: skip payment form, go straight to confirmation
+    if (widget.paymentMethod == PaymentMethod.payOnArrival) {
+      Navigator.pop(context);
+      _confirmBooking();
+      _showConfirmation();
+      return;
+    }
     Navigator.pop(context);
     showDialog(
       context: context,
@@ -53,7 +61,6 @@ class _PaymentSheetState extends State<PaymentSheet> {
     final bookingDate = '${now.day} ${months[now.month - 1]} ${now.year}';
 
     if (bookings.isNotEmpty) {
-      // One BookedTrip per accommodation booking
       for (final b in bookings.values) {
         final travelDate = '${b.checkIn.day} ${months[b.checkIn.month - 1]} ${b.checkIn.year}';
         provider.addBookedTrip(BookedTrip(
@@ -64,11 +71,15 @@ class _PaymentSheetState extends State<PaymentSheet> {
           price: '\$${b.totalCost.toStringAsFixed(0)}',
           bookingDate: bookingDate,
           travelDate: travelDate,
-          status: BookingStatus.confirmed,
+          status: widget.paymentMethod == PaymentMethod.payOnArrival
+              ? BookingStatus.pending
+              : BookingStatus.confirmed,
+          airportPickup: provider.pendingAirportPickup,
+          tourGuideRequested: provider.pendingTourGuide,
+          paymentMethod: widget.paymentMethod,
         ));
       }
     } else {
-      // Fallback: one trip entry for the whole plan
       final trips = provider.addedTrips;
       final image = trips.isNotEmpty
           ? trips.first.image
@@ -81,9 +92,15 @@ class _PaymentSheetState extends State<PaymentSheet> {
         price: '\$${widget.total.toStringAsFixed(0)}',
         bookingDate: bookingDate,
         travelDate: bookingDate,
-        status: BookingStatus.confirmed,
+        status: widget.paymentMethod == PaymentMethod.payOnArrival
+            ? BookingStatus.pending
+            : BookingStatus.confirmed,
+        airportPickup: provider.pendingAirportPickup,
+        tourGuideRequested: provider.pendingTourGuide,
+        paymentMethod: widget.paymentMethod,
       ));
     }
+    provider.resetPendingOptions();
   }
 
   void _showConfirmation() {
@@ -102,6 +119,7 @@ class _PaymentSheetState extends State<PaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isPayOnArrival = widget.paymentMethod == PaymentMethod.payOnArrival;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
@@ -124,42 +142,70 @@ class _PaymentSheetState extends State<PaymentSheet> {
             ),
           ),
 
-          Text('Payment Method',
-              style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textHeading,
-                  letterSpacing: -0.3)),
+          Text(
+            isPayOnArrival ? 'Confirm Booking' : 'Payment Method',
+            style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textHeading,
+                letterSpacing: -0.3)),
           SizedBox(height: 4.h),
-          Text('Choose how you\'d like to pay',
-              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary)),
+          Text(
+            isPayOnArrival
+                ? 'You\'ll pay \$${widget.total.toStringAsFixed(0)} on arrival'
+                : 'Choose how you\'d like to pay',
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary)),
           SizedBox(height: 20.h),
 
-          _MethodTile(
-            icon: Icons.credit_card_rounded,
-            label: 'Credit / Debit Card',
-            subtitle: 'Visa, Mastercard, Amex',
-            selected: _selected == _PayMethod.card,
-            onTap: () => setState(() => _selected = _PayMethod.card),
-          ),
-          SizedBox(height: 10.h),
-          _MethodTile(
-            icon: Icons.phone_android_rounded,
-            label: 'Mobile Money',
-            subtitle: 'MTN MoMo, Airtel Money',
-            selected: _selected == _PayMethod.mobileMoney,
-            onTap: () => setState(() => _selected = _PayMethod.mobileMoney),
-          ),
-          SizedBox(height: 10.h),
-          _MethodTile(
-            icon: Icons.account_balance_rounded,
-            label: 'Bank Transfer',
-            subtitle: 'Direct bank payment',
-            selected: _selected == _PayMethod.bankTransfer,
-            onTap: () => setState(() => _selected = _PayMethod.bankTransfer),
-          ),
-
-          SizedBox(height: 24.h),
+          if (!isPayOnArrival) ...[
+            _MethodTile(
+              icon: Icons.credit_card_rounded,
+              label: 'Credit / Debit Card',
+              subtitle: 'Visa, Mastercard, Amex',
+              selected: _selected == _PayMethod.card,
+              onTap: () => setState(() => _selected = _PayMethod.card),
+            ),
+            SizedBox(height: 10.h),
+            _MethodTile(
+              icon: Icons.phone_android_rounded,
+              label: 'Mobile Money',
+              subtitle: 'MTN MoMo, Airtel Money',
+              selected: _selected == _PayMethod.mobileMoney,
+              onTap: () => setState(() => _selected = _PayMethod.mobileMoney),
+            ),
+            SizedBox(height: 10.h),
+            _MethodTile(
+              icon: Icons.account_balance_rounded,
+              label: 'Bank Transfer',
+              subtitle: 'Direct bank payment',
+              selected: _selected == _PayMethod.bankTransfer,
+              onTap: () => setState(() => _selected = _PayMethod.bankTransfer),
+            ),
+            SizedBox(height: 24.h),
+          ] else ...[
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: AppColors.warningSoft,
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 18.w),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      'Your booking will be marked as pending until payment is received at the property.',
+                      style: TextStyle(
+                          fontSize: 12.sp, color: AppColors.warning, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 24.h),
+          ],
 
           SizedBox(
             width: double.infinity,
@@ -180,7 +226,9 @@ class _PaymentSheetState extends State<PaymentSheet> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Checkout  ·  \$${widget.total.toStringAsFixed(0)}',
+                  isPayOnArrival
+                      ? 'Confirm Booking'
+                      : 'Checkout  ·  \$${widget.total.toStringAsFixed(0)}',
                   style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.bold,
@@ -230,7 +278,7 @@ class _MethodTile extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(9.w),
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.background,
+                color: selected ? AppColors.primary : AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Icon(icon,

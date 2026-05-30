@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/animated_card_item.dart';
 import '../../../shared/widgets/Categories.dart';
 import '../../../shared/widgets/keza_app_bar.dart';
-import '../../home_screen/presentation/DestinationDetails.dart';
+import '../../Destinations/presentation/destination_details/destination_details_screen.dart';
 import '../../trips/providers/trips_provider.dart';
 
 class ProvincePlacesScreen extends StatelessWidget {

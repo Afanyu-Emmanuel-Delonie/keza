@@ -58,7 +58,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _finish() async {
     await context.read<AuthProvider>().markOnboardingSeen();
-    if (mounted) context.go('/');
+    if (mounted) context.go('/login');
   }
 
   @override

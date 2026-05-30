@@ -132,6 +132,9 @@ class BookedTrip {
   final String bookingDate;
   final String travelDate;
   final BookingStatus status;
+  final bool airportPickup;
+  final bool tourGuideRequested;
+  final PaymentMethod paymentMethod;
 
   const BookedTrip({
     required this.id,
@@ -142,6 +145,9 @@ class BookedTrip {
     required this.bookingDate,
     required this.travelDate,
     required this.status,
+    this.airportPickup = false,
+    this.tourGuideRequested = false,
+    this.paymentMethod = PaymentMethod.payNow,
   });
 }
 
@@ -237,3 +243,4 @@ class GuideBooking {
 enum GuideBookingStatus { pending, confirmed }
 enum BookingStatus { pending, confirmed, completed }
 enum TripReadiness { incomplete, awaitingConfirmation, ready }
+enum PaymentMethod { payNow, payOnArrival }

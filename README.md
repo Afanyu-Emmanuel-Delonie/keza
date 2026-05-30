@@ -25,9 +25,15 @@ Keza Mobile aims to become a scalable digital ecosystem for Rwanda's hospitality
 
 This README will be updated as the project evolves, so we can keep the product direction, features, and implementation notes in one place.
 
+## Recent Development Notes
+
+- Fixed the Android Gradle Kotlin DSL syntax in `mobile/android/app/build.gradle.kts` by changing the `minSdk` configuration from Groovy-style syntax to Kotlin-style assignment.
+- Identified the app ID as `com.example.keza_mobile` for the Flutter project.
+- Removed the old emulator-installed package `com.example.wao_mobile` to free up storage and allow APK installation on `sdk gphone64 x86 64`.
+- Confirmed the emulator was running low on internal storage during installation, so cleanup was needed before the app could run again.
+
 ## Project Structure
 
 - `backend/` - backend services and APIs
 - `mobile/` - Flutter mobile application
 - `web/` - web experience and related assets
-

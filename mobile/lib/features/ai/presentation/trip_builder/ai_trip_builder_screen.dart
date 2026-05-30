@@ -64,7 +64,7 @@ class _AiTripBuilderScreenState extends State<AiTripBuilderScreen> {
   void _onConfirm() {
     Navigator.of(context).popUntil((route) => route.isFirst);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      NavigationPage.jumpToTab(context, 3);
+      NavigationPage.jumpToTab(context, 2);
       showTopSnackbar(
         context,
         'Trip saved! We\'ll notify you when booking is confirmed.',
@@ -141,8 +141,8 @@ class _AiTripBuilderScreenState extends State<AiTripBuilderScreen> {
           onNext: _onPrefsSubmit,
         );
       case _Step.loadingPlaces:
-        return _LoadingView(
-          key: const ValueKey('loadingPlaces'),
+        return const _LoadingView(
+          key: ValueKey('loadingPlaces'),
           message: 'Finding matching places...',
           sub: 'AI is scanning destinations based on your interests',
         );

@@ -10,6 +10,8 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _repository.isAuthenticated;
   bool get hasSeenOnboarding => _repository.hasSeenOnboarding;
+  String get currentName => _repository.currentName;
+  String get currentEmail => _repository.currentEmail;
 
   AuthStatus _status = AuthStatus.idle;
   String? _error;

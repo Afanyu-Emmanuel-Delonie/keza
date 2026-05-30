@@ -16,9 +16,9 @@ class AppColors {
   static const Color textDisabled  = Color(0xFFB0B5BF); // disabled / placeholder
 
   // Surfaces — layered from darkest bg → lightest card
-  static const Color background    = Color(0xFFF4F5F7); // page bg — cool off-white
-  static const Color surface       = Color(0xFFFFFFFF); // cards, sheets — pure white pops cleanly on F4F5F7
-  static const Color surfaceRaised = Color(0xFFF9FAFB); // subtle inner sections inside cards
+  static const Color background    = Color(0xFFFFFFFF); // page bg — pure white
+  static const Color surface       = Color(0xFFFFFFFF); // cards, sheets
+  static const Color surfaceRaised = Color(0xFFF4F5F7); // subtle inner sections inside cards
   static const Color surfaceBorder = Color(0xFFE8EAED); // dividers, input borders
 
   // ========== Status Colors ================================

@@ -37,6 +37,58 @@ class TripsProvider extends ChangeNotifier {
   bool isSelected(String id) => _repository.isSelected(id);
   bool isInTrip(String name) => _repository.isInTrip(name);
 
+  // ── Trip group name ──
+  String? _tripGroupName;
+  String? get tripGroupName => _tripGroupName;
+  bool get hasNamedGroup => _tripGroupName != null;
+
+  void setTripGroupName(String name) {
+    _tripGroupName = name;
+    notifyListeners();
+  }
+
+  void clearTripGroup() {
+    _tripGroupName = null;
+    notifyListeners();
+  }
+
+  // ── Pending booking options (set before confirming) ──
+  bool _pendingAirportPickup = false;
+  bool _pendingTourGuide = false;
+  PaymentMethod _pendingPaymentMethod = PaymentMethod.payNow;
+
+  bool get pendingAirportPickup => _pendingAirportPickup;
+  bool get pendingTourGuide => _pendingTourGuide;
+  PaymentMethod get pendingPaymentMethod => _pendingPaymentMethod;
+
+  void setPendingAirportPickup(bool value) {
+    _pendingAirportPickup = value;
+    notifyListeners();
+  }
+
+  void setPendingTourGuide(bool value) {
+    _pendingTourGuide = value;
+    notifyListeners();
+  }
+
+  void setPendingPaymentMethod(PaymentMethod method) {
+    _pendingPaymentMethod = method;
+    notifyListeners();
+  }
+
+  void resetPendingOptions() {
+    _pendingAirportPickup = false;
+    _pendingTourGuide = false;
+    _pendingPaymentMethod = PaymentMethod.payNow;
+    notifyListeners();
+  }
+
+  // Airport pickup adds a flat fee
+  double get airportPickupFee => _pendingAirportPickup ? 35.0 : 0.0;
+  // Tour guide adds $80/day flat for the trip duration
+  double get tourGuideFee => _pendingTourGuide ? 80.0 : 0.0;
+  double get bookingGrandTotal => grandTotal + airportPickupFee + tourGuideFee;
+
   void toggleLikeAccommodation(TripItem item) {
     _repository.toggleLikeAccommodation(item);
     notifyListeners();

@@ -1,6 +1,8 @@
 abstract class AuthRepository {
   bool get isAuthenticated;
   bool get hasSeenOnboarding;
+  String get currentName;
+  String get currentEmail;
 
   Future<void> loginWithEmail(String email, String password);
   Future<void> registerWithEmail(String name, String email, String password);

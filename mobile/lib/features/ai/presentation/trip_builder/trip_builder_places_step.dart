@@ -69,24 +69,34 @@ class _TripBuilderPlacesStepState extends State<TripBuilderPlacesStep> {
               SizedBox(height: 10.h),
               // Budget per person hint
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: AppColors.infoSoft,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 14.w, color: AppColors.info),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 14.w,
+                      color: AppColors.info,
+                    ),
                     SizedBox(width: 6.w),
-                    Text(
-                      'Select the places you want to visit. AI will auto-book accommodation.',
-                      style: TextStyle(fontSize: 11.sp, color: AppColors.info),
+                    Expanded(
+                      child: Text(
+                        'Select the places you want to visit. AI will auto-book accommodation.',
+                        softWrap: true,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.info,
+                          height: 1.3,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+              )
             ],
           ),
         ),

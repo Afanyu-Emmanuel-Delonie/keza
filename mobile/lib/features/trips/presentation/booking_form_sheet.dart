@@ -158,7 +158,7 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 32.h),

@@ -447,7 +447,7 @@ class _DateRangeField extends StatelessWidget {
   }
 }
 
-// ── Budget text field ─────────────────────────────────────────────────────────
+
 class _BudgetField extends StatelessWidget {
   final TextEditingController controller;
   const _BudgetField({required this.controller});
@@ -455,71 +455,97 @@ class _BudgetField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // Matching background, border, and shadows exactly with travel/people fields
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: AppColors.surfaceBorder),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+        ],
+        style: TextStyle(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textHeading,
+        ),
+        decoration: InputDecoration(
+          hintText: '0.00',
+          hintStyle: TextStyle(
+            fontSize: 16.sp,
+            color: AppColors.textDisabled,
+            fontWeight: FontWeight.w400,
+          ),
+
+          // Using InputBorder.none to let the outer Container handle the structural framing
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 14.h),
+
+          // ── Prefix Container ($) ──
+          prefixIcon: Container(
+            margin: EdgeInsets.only(right: 14.w),
             width: 52.w,
-            height: 52.w,
+            height: 52.h,
             decoration: BoxDecoration(
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(14.r),
-                bottomLeft: Radius.circular(14.r),
+                topLeft: Radius.circular(13.r), // Curves inside the container frame cleanly
+                bottomLeft: Radius.circular(13.r),
               ),
             ),
             alignment: Alignment.center,
-            child: Text('\$',
-                style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary)),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
+            child: Text(
+              '\$',
               style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textHeading),
-              decoration: InputDecoration(
-                hintText: '0.00',
-                hintStyle: TextStyle(
-                    fontSize: 16.sp, color: AppColors.textDisabled),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 14.w),
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.only(right: 14.w),
-            child: Text('USD',
-                style: TextStyle(
+          prefixIconConstraints: BoxConstraints(
+            minWidth: 52.w,
+            minHeight: 52.h,
+          ),
+
+          // ── Suffix Content (USD) ──
+          suffixIcon: Padding(
+            padding: EdgeInsets.only(right: 16.w), // Matches the 16.w horizontal frame paddings
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'USD',
+                  style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600)),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+          suffixIconConstraints: BoxConstraints(
+            minWidth: 40.w,
+          ),
+        ),
       ),
     );
   }
 }
-
 // ── People counter ────────────────────────────────────────────────────────────
 class _PeopleCounter extends StatelessWidget {
   final int value;

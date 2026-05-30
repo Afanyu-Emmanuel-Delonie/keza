@@ -61,7 +61,7 @@ class _BudgetRangePageState extends State<BudgetRangePage> {
                       width: 36.w,
                       height: 36.w,
                       decoration: BoxDecoration(
-                        color: active ? AppColors.primary : AppColors.background,
+                        color: active ? AppColors.primary : AppColors.surfaceRaised,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.attach_money_rounded,

@@ -5,90 +5,32 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../providers/trips_provider.dart';
 import 'booking_form_sheet.dart';
 import '../../../core/utils/trip_snackbar.dart';
 import 'itinerary_summary_sheet.dart';
 import 'payment_sheet.dart';
 
-// ── Static accommodation data grouped by province ────────────────────────────
-// isAvailable: false means rooms are sold out
-const _kAccommodations = {
-  'Kigali City': [
-    {
-      'name': 'Kigali Serena Hotel',
-      'location': 'Kiyovu, Kigali',
-      'price': '\$180/night',
-      'rating': '4.9',
+// Build accommodation map from AppConstants — single source of truth
+Map<String, List<Map<String, String>>> _buildAccommodationMap() {
+  final map = <String, List<Map<String, String>>>{};
+  for (final acc in AppConstants.aiAccommodations) {
+    final province = acc['province'] as String;
+    final price = acc['pricePerNight'] as double;
+    map.putIfAbsent(province, () => []).add({
+      'name': acc['name'] as String,
+      'location': province,
+      'price': '\$${price.toStringAsFixed(0)}/night',
+      'rating': acc['rating'] as String,
       'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&fit=crop',
-    },
-    {
-      'name': 'Radisson Blu Kigali',
-      'location': 'Gasabo, Kigali',
-      'price': '\$150/night',
-      'rating': '4.7',
-      'available': 'false',
-      'image': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=400&fit=crop',
-    },
-    {
-      'name': 'Nyandungu Eco Lodge',
-      'location': 'Nyarugunga, Kigali',
-      'price': '\$95/night',
-      'rating': '4.5',
-      'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=400&fit=crop',
-    },
-  ],
-  'Northern Province': [
-    {
-      'name': 'Gorilla Nest Lodge',
-      'location': 'Kinigi, Musanze',
-      'price': '\$200/night',
-      'rating': '4.9',
-      'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=400&fit=crop',
-    },
-    {
-      'name': 'Luxury Green Villa',
-      'location': 'Musanze',
-      'price': '\$120/night',
-      'rating': '4.8',
-      'available': 'false',
-      'image': 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=400&fit=crop',
-    },
-  ],
-  'Eastern Province': [
-    {
-      'name': 'Akagera Game Lodge',
-      'location': 'Kayonza',
-      'price': '\$95/night',
-      'rating': '4.6',
-      'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=400&fit=crop',
-    },
-  ],
-  'Western Province': [
-    {
-      'name': 'Lake Kivu Serena',
-      'location': 'Rubavu',
-      'price': '\$150/night',
-      'rating': '4.8',
-      'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=400&fit=crop',
-    },
-  ],
-  'Southern Province': [
-    {
-      'name': 'Huye Mountain Hotel',
-      'location': 'Huye',
-      'price': '\$80/night',
-      'rating': '4.4',
-      'available': 'true',
-      'image': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=400&fit=crop',
-    },
-  ],
-};
+      'image': acc['image'] as String,
+    });
+  }
+  return map;
+}
+
+final _kAccommodations = _buildAccommodationMap();
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -161,10 +103,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       bookings: provider.allBookings,
       totalCost: provider.totalAccommodationCost + provider.totalTripCost,
       serviceFee: provider.serviceFee,
-      grandTotal: provider.grandTotal,
+      grandTotal: provider.bookingGrandTotal,
+      airportPickup: provider.pendingAirportPickup,
+      tourGuide: provider.pendingTourGuide,
+      paymentMethod: provider.pendingPaymentMethod,
       onConfirm: () => PaymentSheet.show(
         context,
-        total: provider.grandTotal,
+        total: provider.bookingGrandTotal,
+        paymentMethod: provider.pendingPaymentMethod,
       ),
     );
   }
@@ -296,7 +242,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         onEdit: (province) => setState(() => _selectedProvince = province),
                       ),
 
-                                      SizedBox(height: 24.h),
+                      SizedBox(height: 16.h),
+
+                      // ── Booking options (airport pickup, tour guide, payment) ──
+                      _BookingOptionsCard(),
+
+                      SizedBox(height: 24.h),
                       Text(
                         'Where to Stay',
                         style: TextStyle(
@@ -736,7 +687,7 @@ class _ArrivalDateCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(9.w),
               decoration: BoxDecoration(
-                color: hasDate ? AppColors.primarySoft : AppColors.background,
+                color: hasDate ? AppColors.primarySoft : AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Icon(Icons.calendar_today_rounded, size: 16.w,
@@ -862,10 +813,6 @@ class _ConfirmedStaysSection extends StatelessWidget {
                       },
                       child: Container(
                         padding: EdgeInsets.all(7.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
                         child: Icon(Icons.edit_outlined, size: 15.w, color: AppColors.textSecondary),
                       ),
                     ),
@@ -1327,3 +1274,214 @@ class _OverviewPill extends StatelessWidget {
     );
   }
 }
+
+// ── Booking options card (airport pickup, tour guide, payment method) ──────────
+class _BookingOptionsCard extends StatelessWidget {
+  const _BookingOptionsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TripsProvider>(
+      builder: (context, provider, _) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 10.h),
+                child: Text(
+                  'Add-ons & Payment',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textHeading,
+                  ),
+                ),
+              ),
+              Divider(height: 1, color: AppColors.surfaceBorder),
+
+              // Airport pickup toggle
+              _OptionTile(
+                icon: Icons.flight_land_rounded,
+                title: 'Airport Pickup',
+                subtitle: 'Transfer from Kigali airport  ·  +\$35',
+                value: provider.pendingAirportPickup,
+                onChanged: provider.setPendingAirportPickup,
+              ),
+              Divider(height: 1, color: AppColors.surfaceBorder, indent: 16.w, endIndent: 16.w),
+
+              // Tour guide toggle
+              _OptionTile(
+                icon: Icons.person_pin_circle_outlined,
+                title: 'Tour Guide',
+                subtitle: 'Local expert guide  ·  +\$80/day',
+                value: provider.pendingTourGuide,
+                onChanged: provider.setPendingTourGuide,
+              ),
+              Divider(height: 1, color: AppColors.surfaceBorder),
+
+              // Payment method selector
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 14.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payment',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textHeading,
+                      ),
+                    ),
+                    SizedBox(height: 10.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PaymentChip(
+                            label: 'Pay Now',
+                            icon: Icons.credit_card_rounded,
+                            selected: provider.pendingPaymentMethod == PaymentMethod.payNow,
+                            onTap: () => provider.setPendingPaymentMethod(PaymentMethod.payNow),
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: _PaymentChip(
+                            label: 'Pay on Arrival',
+                            icon: Icons.hotel_rounded,
+                            selected: provider.pendingPaymentMethod == PaymentMethod.payOnArrival,
+                            onTap: () => provider.setPendingPaymentMethod(PaymentMethod.payOnArrival),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _OptionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: value ? AppColors.primarySoft : AppColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Icon(icon, size: 16.w,
+                color: value ? AppColors.primary : AppColors.textSecondary),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textHeading)),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 11.sp, color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PaymentChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primarySoft : AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.surfaceBorder,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon,
+                size: 18.w,
+                color: selected ? AppColors.primary : AppColors.textSecondary),
+            SizedBox(height: 4.h),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.primary : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+

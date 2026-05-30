@@ -211,7 +211,9 @@ class _SplashScreenState extends State<SplashScreen>
 
             // ── Logo ──
             Center(
-              child: Column(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ScaleTransition(
@@ -309,7 +311,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   shape: BoxShape.circle,
                                   // Bright primary green, opacity tracks scale
                                   color: AppColors.primary.withOpacity(
-                                    0.35 + (v - 0.45) * 1.2,
+                                    (0.35 + (v - 0.45) * 1.2).clamp(0.0, 1.0).toDouble(),
                                   ),
                                 ),
                               ),
@@ -321,45 +323,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ],
               ),
-            ),
-
-            // ── Developer credit ──
-            Positioned(
-              bottom: 36.h,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _creditFade,
-                child: Column(
-                  children: [
-                    Text(
-                      'developed by',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.35),
-                        fontSize: 10.sp,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.7),
-                          letterSpacing: 0.3,
-                        ),
-                        children: const [
-                          TextSpan(text: '<', style: TextStyle(color: Color(0xFF4ADE80))),
-                          TextSpan(text: 'Afanyu'),
-                          TextSpan(text: ' />', style: TextStyle(color: Color(0xFF4ADE80))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
+
           ],
         ),
       ),

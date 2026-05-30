@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/animated_card_item.dart';
+import '../../../shared/widgets/empty_state.dart';
 import '../providers/trips_provider.dart';
 
 class BookedTab extends StatelessWidget {
@@ -14,7 +15,7 @@ class BookedTab extends StatelessWidget {
     return Consumer<TripsProvider>(
       builder: (context, provider, _) {
         if (provider.bookedTrips.isEmpty) {
-          return _EmptyState(
+          return EmptyState(
             icon: Icons.confirmation_num_outlined,
             message: 'No bookings yet',
             sub: 'Your confirmed bookings will appear here',
@@ -313,43 +314,4 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  final String sub;
-  const _EmptyState(
-      {required this.icon, required this.message, required this.sub});
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 40.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56.w, color: AppColors.textDisabled),
-            SizedBox(height: 16.h),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              sub,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppColors.textSecondary,
-                  height: 1.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

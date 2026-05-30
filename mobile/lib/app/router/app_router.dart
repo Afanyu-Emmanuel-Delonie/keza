@@ -10,6 +10,7 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../../features/navigation/presentation/navigation_page.dart';
 import '../../features/trips/presentation/checkout_page.dart';
 import '../../features/trips/presentation/trip_planner/trip_planner_page.dart';
+import '../../features/explore/presentation/ExploreScreen.dart';
 
 class AppRouter {
   static const splash         = '/splash';

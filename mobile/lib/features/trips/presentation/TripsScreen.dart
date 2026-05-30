@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/theme/app_colors.dart';
-import 'favourites_tab.dart';
 import 'my_trip_tab.dart';
+import 'favourites_tab.dart';
 import 'booked_tab.dart';
 
 class TripsScreen extends StatefulWidget {
@@ -51,7 +51,7 @@ class _TripsScreenState extends State<TripsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Trips',
+                    'My Trip',
                     style: TextStyle(
                       fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
@@ -61,7 +61,7 @@ class _TripsScreenState extends State<TripsScreen>
                   ),
                   SizedBox(height: 1.h),
                   Text(
-                    'Plan, book & explore',
+                    'Your saved places & bookings',
                     style: TextStyle(
                       fontSize: 12.sp,
                       color: AppColors.textSecondary,
@@ -84,8 +84,8 @@ class _TripsScreenState extends State<TripsScreen>
                       fontWeight: FontWeight.w500,
                     ),
                     tabs: const [
-                      Tab(text: 'Favourites'),
                       Tab(text: 'My Trip'),
+                      Tab(text: 'Favourites'),
                       Tab(text: 'Booked'),
                     ],
                   ),
@@ -97,8 +97,8 @@ class _TripsScreenState extends State<TripsScreen>
                 controller: _tabController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: const [
-                  FavouritesTab(),
                   MyTripTab(),
+                  FavouritesTab(),
                   BookedTab(),
                 ],
               ),

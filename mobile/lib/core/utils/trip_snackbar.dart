@@ -1,6 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
+import '../../features/trips/presentation/name_trip_sheet.dart';
+import '../../features/trips/providers/trips_provider.dart';
+
+/// Adds [item] to the trip. If no group is named yet, shows the naming sheet first.
+/// Call this instead of provider.toggleAddTrip directly.
+Future<void> addToTripWithGroupCheck(
+  BuildContext context,
+  TripItem item,
+) async {
+  final provider = context.read<TripsProvider>();
+
+  // Already added — just toggle off
+  if (provider.isAdded(item.id)) {
+    provider.toggleAddTrip(item);
+    return;
+  }
+
+  // First item ever — prompt for group name
+  if (!provider.hasNamedGroup) {
+    final name = await NameTripSheet.show(context);
+    if (name == null || !context.mounted) return; // dismissed
+    provider.setTripGroupName(name);
+  }
+
+  provider.toggleAddTrip(item);
+  if (context.mounted) showAddedToTripSnackbar(context, item.name);
+}
 
 void showAddedToTripSnackbar(BuildContext context, String name) {
   ScaffoldMessenger.of(context).clearSnackBars();

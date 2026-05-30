@@ -11,6 +11,9 @@ class ItinerarySummarySheet extends StatelessWidget {
   final VoidCallback onConfirm;
   final double serviceFee;
   final double grandTotal;
+  final bool airportPickup;
+  final bool tourGuide;
+  final PaymentMethod paymentMethod;
 
   const ItinerarySummarySheet({
     super.key,
@@ -20,6 +23,9 @@ class ItinerarySummarySheet extends StatelessWidget {
     required this.onConfirm,
     this.serviceFee = 0,
     this.grandTotal = 0,
+    this.airportPickup = false,
+    this.tourGuide = false,
+    this.paymentMethod = PaymentMethod.payNow,
   });
 
   static Future<bool?> show(
@@ -30,6 +36,9 @@ class ItinerarySummarySheet extends StatelessWidget {
     required VoidCallback onConfirm,
     double serviceFee = 0,
     double grandTotal = 0,
+    bool airportPickup = false,
+    bool tourGuide = false,
+    PaymentMethod paymentMethod = PaymentMethod.payNow,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -42,6 +51,9 @@ class ItinerarySummarySheet extends StatelessWidget {
         onConfirm: onConfirm,
         serviceFee: serviceFee,
         grandTotal: grandTotal,
+        airportPickup: airportPickup,
+        tourGuide: tourGuide,
+        paymentMethod: paymentMethod,
       ),
     );
   }
@@ -67,7 +79,7 @@ class ItinerarySummarySheet extends StatelessWidget {
       builder: (_, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.surfaceRaised,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
           ),
           child: Column(
@@ -281,6 +293,10 @@ class ItinerarySummarySheet extends StatelessWidget {
                                 sublabel: '${e.value.nights}n · ${e.key}',
                                 amount: e.value.totalCost,
                               )),
+                          if (airportPickup)
+                            const _CostRow(label: 'Airport Pickup', amount: 35),
+                          if (tourGuide)
+                            const _CostRow(label: 'Tour Guide', amount: 80),
                           Divider(height: 16.h, color: AppColors.surfaceBorder),
                           _CostRow(label: 'Subtotal', amount: totalCost),
                           _CostRow(label: 'Service fee (5%)', amount: serviceFee),
@@ -299,6 +315,44 @@ class ItinerarySummarySheet extends StatelessWidget {
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.primary)),
                             ],
+                          ),
+                          SizedBox(height: 10.h),
+                          // Payment method badge
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: paymentMethod == PaymentMethod.payNow
+                                  ? AppColors.primarySoft
+                                  : AppColors.warningSoft,
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  paymentMethod == PaymentMethod.payNow
+                                      ? Icons.credit_card_rounded
+                                      : Icons.hotel_rounded,
+                                  size: 14.w,
+                                  color: paymentMethod == PaymentMethod.payNow
+                                      ? AppColors.primary
+                                      : AppColors.warning,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  paymentMethod == PaymentMethod.payNow
+                                      ? 'Pay Now selected'
+                                      : 'Pay on Arrival selected',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: paymentMethod == PaymentMethod.payNow
+                                        ? AppColors.primary
+                                        : AppColors.warning,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -334,7 +388,9 @@ class ItinerarySummarySheet extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      'Proceed to Pay  \$${grandTotal.toStringAsFixed(0)}',
+                      paymentMethod == PaymentMethod.payOnArrival
+                          ? 'Confirm Booking  ·  Pay on Arrival'
+                          : 'Proceed to Pay  Ⓢ${grandTotal.toStringAsFixed(0)}',
                       style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.bold,
